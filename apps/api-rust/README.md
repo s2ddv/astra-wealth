@@ -124,3 +124,61 @@ The integration test exercises creation, TEXT ids, nullable updates, uniqueness,
 email fallback and concurrent first-login upserts. It only deletes its own test
 users. Normal tests exercise HS256/ES256, JWKS, invalid claims and legacy auth
 errors against a local mock Supabase server.
+
+## Asset icons and CoinGecko ingestion
+
+`infrastructure::market::crypto_market_services(redis_pool, api_key)` composes a
+`CryptoMarketService` and `AssetIconService` with one bounded HTTP client and one
+Redis cache. No new HTTP routes are registered and the mock dashboard is unchanged.
+The ingestion service supports the first 100 `/coins/markets` results in USD and
+`/coins/{id}` details. This is the shared ingestion foundation for Phase 5, not a
+completed migration of the legacy market API, trending, pagination or watchlists.
+
+Market payloads use a 60-second TTL. The same decoded payload supplies icon metadata:
+markets returns an image URL; details prefer `large`, then `small`, then `thumb`.
+The icon provider performs **zero HTTP requests**. API keys, when configured, are
+sent using the CoinGecko Demo API header, never in URLs. Paid/Pro API support is not
+configured by this adapter.
+
+Resolved icons use Redis `SETEX` with **86400 seconds**. Keys are
+`icon:crypto:id:{coingecko_id}`, `icon:crypto:token:{chain}:{address}`,
+`icon:crypto:symbol:{SYMBOL}` or `icon:stock:{TICKER}`. Chain and contract identity
+prevent ticker collisions; Solana address case is preserved and EVM keys normalize
+case. Symbol lookup only uses the currently ingested metadata, refuses ambiguous
+matches, and never reads old symbol cache entries. It is not a global symbol
+catalog lookup. Supply a CoinGecko id or chain/contract for reliable identity.
+
+The Trust Wallet fallback downloads a PNG (HTTP 200, image/png, PNG signature,
+256 KiB maximum). EVM paths use EIP-55 checksums. Fixed upstream hosts, disabled
+redirects and validated path components prevent arbitrary URL fetching. HTTP calls
+have a 5-second timeout; Redis operations have a 1-second timeout. Missing images,
+rate limits and unavailable providers fall back to `{ url: null, symbol }`;
+cache failures do not fail a successful icon resolution. Failed lookups aren't
+cached for 24h so transient outages can recover.
+
+Downloaded Trust Wallet images are returned and cached as PNG **data URLs**, never
+as GitHub URLs. This avoids hotlinking and doesn't need a new public proxy route or
+filesystem storage. The future frontend should accept `data:` for image sources,
+render initials when `url` is null or image loading fails, and derive a stable color
+from the returned normalized symbol. No frontend rendering is introduced here.
+
+`FmpStockIconProvider` implements the separate `StockIconProvider` opt-in port. It
+validates/downloads the public PNG before resolving its HTTPS URL. It is not wired
+into `crypto_market_services`, API routers or the dashboard. `with_stocks` is only
+for future consumers and isolated tests, not stock tracking or market integration.
+
+`cargo run -p zora-api --bin export-types` also generates
+`packages/shared/src/generated/rust/IconResponse.ts` using ts-rs. The DTO does not
+change existing shared exports. Provider tests use local HTTP fixtures; service
+tests verify cache TTLs, fallback ordering, validation and stock isolation.
+
+To verify Redis roundtrip and TTL against a disposable instance:
+
+```sh
+TEST_REDIS_URL=redis://127.0.0.1:56391 cargo test -p zora-infrastructure --test asset_icon_cache -- --ignored
+```
+
+Provider references: [CoinGecko markets](https://docs.coingecko.com/reference/coins-markets),
+[CoinGecko details](https://docs.coingecko.com/reference/coins-id),
+[Trust Wallet asset layout](https://github.com/trustwallet/assets),
+[FMP company logos](https://site.financialmodelingprep.com/developer/docs/company-image-api).

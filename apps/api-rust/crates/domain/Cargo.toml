@@ -8,3 +8,4 @@ publish.workspace = true
 [dependencies]
 chrono.workspace = true
 thiserror.workspace = true
+garde.workspace = true

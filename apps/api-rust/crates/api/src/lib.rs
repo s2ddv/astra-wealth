@@ -52,3 +52,5 @@ pub fn router(health: HealthState, auth: auth::AuthState) -> Router {
     let protected: Router<auth::AuthState> = Router::new();
     health_router(health).merge(protected.with_state(auth))
 }
+
+pub mod asset_icon;

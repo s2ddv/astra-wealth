@@ -50,3 +50,6 @@ pub trait UserRepository: Send + Sync {
     /// Atomic by authId, matching Fastify's Prisma upsert during authentication.
     fn upsert_identity(&self, identity: AuthIdentity) -> RepositoryFuture<'_, User>;
 }
+
+pub mod asset_icon;
+pub mod market;

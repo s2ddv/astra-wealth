@@ -7,3 +7,6 @@ publish.workspace = true
 
 [dependencies]
 domain.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

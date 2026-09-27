@@ -31,3 +31,6 @@ impl UserService {
     // WalletService will receive the same repository port. The authenticated
     // user's local id, NOT the Supabase auth id, owns wallets.userId.
 }
+
+pub mod asset_icon;
+pub mod market;
