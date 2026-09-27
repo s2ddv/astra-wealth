@@ -1,18 +1,28 @@
-import type { MarketAssetDto, TrendingAssetDto } from "@/types/dashboard";
+import type { MarketInstrument } from "@/types/markets";
 
-// MOCK: substituir na Fase 5 por preços, market cap, volume e trending do CoinGecko.
-// A watchlist é apenas estado de UI na Fase 4; não persiste no servidor.
-export const mockMarketAssets: MarketAssetDto[] = [
-  { id: "bitcoin", rank: 1, name: "Bitcoin", symbol: "BTC", imageUrl: "", priceUsd: 67432.18, change24h: 2.31, marketCapUsd: 1328000000000, volume24hUsd: 28400000000, isWatchlisted: true },
-  { id: "ethereum", rank: 2, name: "Ethereum", symbol: "ETH", imageUrl: "", priceUsd: 3482.11, change24h: 1.84, marketCapUsd: 418600000000, volume24hUsd: 15200000000, isWatchlisted: true },
-  { id: "tether", rank: 3, name: "Tether", symbol: "USDT", imageUrl: "", priceUsd: 1, change24h: 0, marketCapUsd: 112400000000, volume24hUsd: 48600000000, isWatchlisted: false },
-  { id: "solana", rank: 4, name: "Solana", symbol: "SOL", imageUrl: "", priceUsd: 178.4, change24h: -0.92, marketCapUsd: 82400000000, volume24hUsd: 3100000000, isWatchlisted: false },
-  { id: "usd-coin", rank: 5, name: "USD Coin", symbol: "USDC", imageUrl: "", priceUsd: 1, change24h: 0.01, marketCapUsd: 32400000000, volume24hUsd: 6200000000, isWatchlisted: false },
-  { id: "chainlink", rank: 6, name: "Chainlink", symbol: "LINK", imageUrl: "", priceUsd: 19.29, change24h: -2.41, marketCapUsd: 11740000000, volume24hUsd: 481000000, isWatchlisted: false },
-  { id: "jupiter", rank: 7, name: "Jupiter", symbol: "JUP", imageUrl: "", priceUsd: 0.921, change24h: 6.05, marketCapUsd: 1243000000, volume24hUsd: 184000000, isWatchlisted: false },
+// Illustrative quotes only. No live market data or trading integration.
+export const mockMarketAssets: MarketInstrument[] = [
+  { id: "crypto:btc", symbol: "BTC", name: "Bitcoin", assetClass: "crypto", venue: "Cripto · USD", currency: "USD", price: 67432.18, change: 2.31 },
+  { id: "crypto:eth", symbol: "ETH", name: "Ethereum", assetClass: "crypto", venue: "Cripto · USD", currency: "USD", price: 3482.11, change: 1.84 },
+  { id: "crypto:sol", symbol: "SOL", name: "Solana", assetClass: "crypto", venue: "Cripto · USD", currency: "USD", price: 178.4, change: -0.92 },
+  { id: "crypto:link", symbol: "LINK", name: "Chainlink", assetClass: "crypto", venue: "Cripto · USD", currency: "USD", price: 19.29, change: -2.41 },
+  { id: "crypto:usdt", symbol: "USDT", name: "Tether", assetClass: "crypto", venue: "Cripto · USD", currency: "USD", price: 1, change: 0 },
+  { id: "nasdaq:aapl", symbol: "AAPL", name: "Apple", assetClass: "stocks", venue: "NASDAQ", currency: "USD", price: 213.07, change: 1.24 },
+  { id: "nasdaq:nvda", symbol: "NVDA", name: "NVIDIA", assetClass: "stocks", venue: "NASDAQ", currency: "USD", price: 126.57, change: 3.52 },
+  { id: "nasdaq:msft", symbol: "MSFT", name: "Microsoft", assetClass: "stocks", venue: "NASDAQ", currency: "USD", price: 428.76, change: -0.45 },
+  { id: "nasdaq:tsla", symbol: "TSLA", name: "Tesla", assetClass: "stocks", venue: "NASDAQ", currency: "USD", price: 248.5, change: -1.76 },
+  { id: "b3:petr4", symbol: "PETR4", name: "Petrobras PN", assetClass: "stocks", venue: "B3", currency: "BRL", price: 38.72, change: 0.83 },
+  { id: "b3:vale3", symbol: "VALE3", name: "Vale ON", assetClass: "stocks", venue: "B3", currency: "BRL", price: 61.42, change: -1.12 },
+  { id: "arca:spy", symbol: "SPY", name: "SPDR S&P 500 ETF", assetClass: "etfs", venue: "NYSE Arca", currency: "USD", price: 548.49, change: 0.76 },
+  { id: "nasdaq:qqq", symbol: "QQQ", name: "Invesco QQQ Trust", assetClass: "etfs", venue: "NASDAQ", currency: "USD", price: 479.11, change: 1.12 },
+  { id: "b3:bova11", symbol: "BOVA11", name: "iShares Ibovespa", assetClass: "etfs", venue: "B3", currency: "BRL", price: 124.38, change: -0.32 },
+  { id: "index:spx", symbol: "SPX", name: "S&P 500", assetClass: "indices", venue: "Estados Unidos", currency: "USD", price: 5482.87, change: 0.77 },
+  { id: "index:ibov", symbol: "IBOV", name: "Ibovespa", assetClass: "indices", venue: "Brasil", currency: "BRL", price: 128320.5, change: -0.34 },
+  { id: "forex:usdbrl", symbol: "USD/BRL", name: "Dólar / Real", assetClass: "forex", venue: "Forex", currency: "BRL", price: 5.43, change: 0.28, unit: "por USD" },
+  { id: "forex:eurusd", symbol: "EUR/USD", name: "Euro / Dólar", assetClass: "forex", venue: "Forex", currency: "USD", price: 1.09, change: -0.15, unit: "por EUR" },
+  { id: "commodity:gold", symbol: "XAU/USD", name: "Ouro", assetClass: "commodities", venue: "Spot", currency: "USD", price: 2368.8, change: 1.07, unit: "por onça troy" },
+  { id: "commodity:brent", symbol: "BRENT", name: "Petróleo Brent", assetClass: "commodities", venue: "Referência Brent", currency: "USD", price: 85.24, change: -0.64, unit: "por barril" },
 ];
 
-export const mockTrendingAssets: TrendingAssetDto[] = ["jupiter", "bitcoin", "solana"].map((id) => {
-  const asset = mockMarketAssets.find((item) => item.id === id)!;
-  return { id: asset.id, name: asset.name, symbol: asset.symbol, change24h: asset.change24h };
-});
+export const defaultWatchlist = ["crypto:btc", "crypto:eth", "nasdaq:nvda", "b3:petr4"];
+export const marketHighlights = ["crypto:btc", "index:spx", "index:ibov", "forex:usdbrl"];
