@@ -160,6 +160,7 @@ async fn coingecko_extraction_is_local_and_rejects_ambiguous_symbols() {
         name: "Bitcoin".into(),
         price_usd: None,
         image: IconUrl::new("https://coin-images.coingecko.com/btc.png".into()),
+        ..MarketCoin::default()
     };
     let mut asset = CryptoRef {
         coingecko_id: None,

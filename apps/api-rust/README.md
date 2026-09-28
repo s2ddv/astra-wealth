@@ -129,12 +129,12 @@ errors against a local mock Supabase server.
 
 `infrastructure::market::crypto_market_services(redis_pool, api_key)` composes a
 `CryptoMarketService` and `AssetIconService` with one bounded HTTP client and one
-Redis cache. No new HTTP routes are registered and the mock dashboard is unchanged.
-The ingestion service supports the first 100 `/coins/markets` results in USD and
-`/coins/{id}` details. This is the shared ingestion foundation for Phase 5, not a
-completed migration of the legacy market API, trending, pagination or watchlists.
+Redis cache. Phase 5 exposes crypto market routes and connects the Markets page through the
+Next.js same-origin bridge. Ingestion supports paginated `/coins/markets` in USD,
+`/coins/{id}` details and `/search/trending`. Stock tracking and server-side
+watchlist persistence remain outside this phase.
 
-Market payloads use a 60-second TTL. The same decoded payload supplies icon metadata:
+Market payloads use a 60-second TTL; trending uses 300 seconds. The same decoded payload supplies icon metadata:
 markets returns an image URL; details prefer `large`, then `small`, then `thumb`.
 The icon provider performs **zero HTTP requests**. API keys, when configured, are
 sent using the CoinGecko Demo API header, never in URLs. Paid/Pro API support is not
@@ -160,7 +160,7 @@ Downloaded Trust Wallet images are returned and cached as PNG **data URLs**, nev
 as GitHub URLs. This avoids hotlinking and doesn't need a new public proxy route or
 filesystem storage. The future frontend should accept `data:` for image sources,
 render initials when `url` is null or image loading fails, and derive a stable color
-from the returned normalized symbol. No frontend rendering is introduced here.
+from the returned normalized symbol. Markets implements this fallback and image-error handling.
 
 `FmpStockIconProvider` implements the separate `StockIconProvider` opt-in port. It
 validates/downloads the public PNG before resolving its HTTPS URL. It is not wired
@@ -169,7 +169,7 @@ for future consumers and isolated tests, not stock tracking or market integratio
 
 `cargo run -p zora-api --bin export-types` also generates
 `packages/shared/src/generated/rust/IconResponse.ts` using ts-rs. The DTO does not
-change existing shared exports. Provider tests use local HTTP fixtures; service
+change existing shared exports. `MarketDto.ts` now supplies the web market hooks. Provider tests use local HTTP fixtures; service
 tests verify cache TTLs, fallback ordering, validation and stock isolation.
 
 To verify Redis roundtrip and TTL against a disposable instance:
@@ -182,3 +182,45 @@ Provider references: [CoinGecko markets](https://docs.coingecko.com/reference/co
 [CoinGecko details](https://docs.coingecko.com/reference/coins-id),
 [Trust Wallet asset layout](https://github.com/trustwallet/assets),
 [FMP company logos](https://site.financialmodelingprep.com/developer/docs/company-image-api).
+
+
+## Phase 5: live crypto markets
+
+Public read-only routes, all backed by `CryptoMarketService`:
+
+- `GET /v1/market/coins?page=1&perPage=50`: paginated `{ data, page, perPage, hasMore }`.
+  `perPage` accepts 1–100 and `page` 1–10000. Optional `ids=bitcoin,ethereum`
+  filters by at most 100 validated CoinGecko IDs. IDs are sorted/deduplicated for cache reuse.
+- `GET /v1/market/coins/{id}`: details with price, 24h change, market cap, volume,
+  icon, rank and upstream update timestamp. Missing metrics stay null, never zero.
+- `GET /v1/market/trending`: up to 15 trending searches. Search popularity is not
+  price performance, and no fake USD prices are inferred from BTC-denominated values.
+- `GET /v1/market/spot?limit=10`: legacy array response shape with nullable missing metrics.
+
+Invalid queries return 400, missing coins 404, provider/network errors 502,
+and upstream rate limits 503 with `Retry-After: 60`. A process-wide cache-fill
+lock coalesces concurrent requests; a 60-second cooldown follows an upstream 429.
+Expired market data is not silently served by the API. Malformed cache entries
+are refetched. Valid market cache hits do not extend their TTL. Icons resolve in
+bounded batches so a cache outage cannot serially delay every asset on a page.
+
+Run the Rust API as documented above with Redis reachable. Set `COINGECKO_API_KEY`
+in `apps/api-rust/.env` for a Demo key where required by the provider. Without it,
+the adapter attempts the public endpoint. Keys are never exposed to the browser.
+For deployment, set **server-side** `MARKET_API_URL` in the Next.js environment to
+this Rust service's origin. Local default: `http://127.0.0.1:3334`. Existing
+`NEXT_PUBLIC_API_URL` and legacy wallet/news flows are not redirected.
+
+Markets polls crypto every 60 seconds and trending every five minutes, presents
+loading/error/empty states and an explicit stale-response warning after refresh
+failure, and opens an accessible native dialog for details. Filters and sorting
+apply to the current page; navigation reaches additional CoinGecko results.
+The browser watchlist migrates the old BTC/ETH/SOL/LINK/USDT demo keys to canonical
+CoinGecko IDs, retains assets outside the current page and fetches their quotes
+in a batch. It remains local (100-asset cap), not account-synchronized. Traditional
+assets retain their existing demo values and explicit Demo labels; FMP is still
+unwired and no stock route exists.
+
+Route tests cover validation before provider calls, DTOs, error statuses and
+stock isolation. Provider tests cover pagination/IDs, trending payloads, shared
+cache fills, corrupted cache recovery and rate-limit cooldowns.

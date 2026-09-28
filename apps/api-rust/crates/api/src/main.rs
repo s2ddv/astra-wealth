@@ -50,7 +50,12 @@ async fn main() -> anyhow::Result<()> {
         production,
         dev_user_id: setting("DEV_USER_ID"),
     };
+    let (markets, _) = infrastructure::market::crypto_market_services(
+        infrastructure::redis_pool(&redis_url)?,
+        setting("COINGECKO_API_KEY"),
+    )?;
     let app = router(HealthState { dependencies }, auth)
+        .merge(zora_api::market::router(markets))
         .layer(
             CorsLayer::new()
                 .allow_origin(origin)

@@ -11,12 +11,15 @@ export interface MarketInstrument {
   assetClass: AssetClass;
   venue: string;
   currency: "USD" | "BRL";
-  price: number;
-  change: number;
+  price: number | null;
+  change: number | null;
+  image?: string | null;
+  updatedAt?: string | null;
   unit?: string;
 }
 
 export function formatMarketPrice(asset: MarketInstrument): string {
+  if (asset.price === null) return "Indisponível";
   if (asset.assetClass === "indices") return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(asset.price)} pts`;
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: asset.currency, maximumFractionDigits: asset.price < 1 ? 4 : 2 }).format(asset.price);
 }

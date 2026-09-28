@@ -3,12 +3,15 @@ use crate::asset_icon::{
 };
 use application::{asset_icon::AssetIconService, market::CryptoMarketService};
 use domain::{
-    asset_icon::{AssetCache, AssetRef, CryptoRef, IconError, IconFuture, IconUrl},
-    market::{CryptoMarketProvider, MarketCoin},
+    asset_icon::{AssetCache, IconError, IconFuture, IconUrl},
+    market::{CryptoMarketProvider, MarketCoin, MarketQuery, validate_coin_id},
 };
 use reqwest::Client;
-use serde::Deserialize;
-use std::sync::Arc;
+use serde::{Deserialize, de::DeserializeOwned};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -43,10 +46,19 @@ struct CoinPayload {
     image: Option<Image>,
     current_price: Option<f64>,
     market_data: Option<MarketData>,
+    price_change_percentage_24h: Option<f64>,
+    market_cap: Option<f64>,
+    total_volume: Option<f64>,
+    market_cap_rank: Option<u32>,
+    last_updated: Option<String>,
 }
 #[derive(Deserialize)]
 struct MarketData {
     current_price: Option<UsdPrice>,
+    market_cap: Option<UsdPrice>,
+    total_volume: Option<UsdPrice>,
+    price_change_percentage_24h: Option<f64>,
+    last_updated: Option<String>,
 }
 #[derive(Deserialize)]
 struct UsdPrice {
@@ -54,18 +66,48 @@ struct UsdPrice {
 }
 impl CoinPayload {
     fn into_coin(self) -> MarketCoin {
+        let data = self.market_data;
         MarketCoin {
             id: self.id,
             symbol: self.symbol,
             name: self.name,
-            price_usd: self.current_price.or_else(|| {
-                self.market_data
-                    .and_then(|data| data.current_price)
-                    .and_then(|price| price.usd)
-            }),
+            price_usd: self
+                .current_price
+                .or_else(|| data.as_ref()?.current_price.as_ref()?.usd),
+            change_24h: self
+                .price_change_percentage_24h
+                .or_else(|| data.as_ref()?.price_change_percentage_24h),
+            market_cap: self
+                .market_cap
+                .or_else(|| data.as_ref()?.market_cap.as_ref()?.usd),
+            volume_24h: self
+                .total_volume
+                .or_else(|| data.as_ref()?.total_volume.as_ref()?.usd),
+            rank: self.market_cap_rank,
+            updated_at: self
+                .last_updated
+                .or_else(|| data.and_then(|v| v.last_updated)),
             image: self.image.and_then(Image::icon),
         }
     }
+}
+#[derive(Deserialize)]
+struct TrendingPayload {
+    coins: Vec<TrendingEntry>,
+}
+#[derive(Deserialize)]
+struct TrendingEntry {
+    item: TrendingCoin,
+}
+#[derive(Deserialize)]
+struct TrendingCoin {
+    id: String,
+    symbol: String,
+    name: String,
+    large: Option<String>,
+    small: Option<String>,
+    thumb: Option<String>,
+    market_cap_rank: Option<u32>,
 }
 
 pub struct CoinGeckoMarketProvider {
@@ -74,6 +116,9 @@ pub struct CoinGeckoMarketProvider {
     icons: Arc<CoinGeckoIconProvider>,
     base: String,
     api_key: Option<String>,
+    // Serialize cache fills; recheck cache after acquiring the lock. A short shared
+    // cooldown prevents concurrent public requests from hammering a rate-limited upstream.
+    gate: tokio::sync::Mutex<Option<Instant>>,
 }
 impl CoinGeckoMarketProvider {
     pub fn new(
@@ -88,16 +133,31 @@ impl CoinGeckoMarketProvider {
             icons,
             base: "https://api.coingecko.com/api/v3".into(),
             api_key,
+            gate: tokio::sync::Mutex::new(None),
         }
     }
-    async fn payload(
+    async fn payload<T: DeserializeOwned>(
         &self,
         key: &str,
         path: &str,
         query: &[(&str, &str)],
-    ) -> Result<(String, bool), IconError> {
-        if let Ok(Some(cached)) = self.cache.get(key).await {
-            return Ok((cached, false));
+        ttl: u64,
+    ) -> Result<T, IconError> {
+        if let Ok(Some(cached)) = self.cache.get(key).await
+            && let Ok(value) = serde_json::from_str(&cached)
+        {
+            return Ok(value);
+        }
+        let mut cooldown = tokio::time::timeout(Duration::from_secs(10), self.gate.lock())
+            .await
+            .map_err(|_| IconError::Unavailable)?;
+        if let Ok(Some(cached)) = self.cache.get(key).await
+            && let Ok(value) = serde_json::from_str(&cached)
+        {
+            return Ok(value);
+        }
+        if cooldown.is_some_and(|until| until > Instant::now()) {
+            return Err(IconError::RateLimited);
         }
         let mut url =
             url::Url::parse(&format!("{}{path}", self.base)).map_err(|_| IconError::Unavailable)?;
@@ -107,8 +167,14 @@ impl CoinGeckoMarketProvider {
             request = request.header("x-cg-demo-api-key", key);
         }
         let mut response = request.send().await.map_err(|_| IconError::Unavailable)?;
-        if response.status() != reqwest::StatusCode::OK {
-            return Err(IconError::Unavailable);
+        match response.status() {
+            reqwest::StatusCode::OK => {}
+            reqwest::StatusCode::NOT_FOUND => return Err(IconError::NotFound),
+            reqwest::StatusCode::TOO_MANY_REQUESTS => {
+                *cooldown = Some(Instant::now() + Duration::from_secs(60));
+                return Err(IconError::RateLimited);
+            }
+            _ => return Err(IconError::Unavailable),
         }
         let mut body = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(|_| IconError::Unavailable)? {
@@ -117,47 +183,72 @@ impl CoinGeckoMarketProvider {
             }
             body.extend_from_slice(&chunk);
         }
-        String::from_utf8(body)
-            .map(|json| (json, true))
-            .map_err(|_| IconError::Unavailable)
+        let json = String::from_utf8(body).map_err(|_| IconError::Unavailable)?;
+        let value = serde_json::from_str(&json).map_err(|_| IconError::Unavailable)?;
+        let _ = self.cache.set(key, &json, ttl).await;
+        Ok(value)
     }
 }
 impl CryptoMarketProvider for CoinGeckoMarketProvider {
-    fn markets(&self) -> IconFuture<'_, Vec<MarketCoin>> {
+    fn market_page(&self, mut query: MarketQuery) -> IconFuture<'_, Vec<MarketCoin>> {
         Box::pin(async move {
-            let key = "market:coingecko:usd:top100:v1";
-            let (json, fresh) = self
-                .payload(
-                    key,
-                    "/coins/markets",
-                    &[
-                        ("vs_currency", "usd"),
-                        ("per_page", "100"),
-                        ("page", "1"),
-                        ("sparkline", "false"),
-                    ],
-                )
-                .await?;
+            query.validate_query()?;
+            query.ids.sort();
+            query.ids.dedup();
+            let ids = query.ids.join(",");
+            let page = query.page.to_string();
+            let per_page = query.per_page.to_string();
+            let key = format!("market:coingecko:usd:v2:{page}:{per_page}:{ids}");
+            let mut params = vec![
+                ("vs_currency", "usd"),
+                ("per_page", per_page.as_str()),
+                ("page", page.as_str()),
+                ("order", "market_cap_desc"),
+                ("sparkline", "false"),
+            ];
+            if !ids.is_empty() {
+                params.push(("ids", &ids));
+            }
             let payload: Vec<CoinPayload> =
-                serde_json::from_str(&json).map_err(|_| IconError::Unavailable)?;
+                self.payload(&key, "/coins/markets", &params, 60).await?;
             let coins: Vec<_> = payload.into_iter().map(CoinPayload::into_coin).collect();
             self.icons.ingest(&coins);
-            if fresh {
-                let _ = self.cache.set(key, &json, 60).await;
-            }
+            Ok(coins)
+        })
+    }
+    fn trending(&self) -> IconFuture<'_, Vec<MarketCoin>> {
+        Box::pin(async move {
+            let payload: TrendingPayload = self
+                .payload("market:coingecko:trending:v1", "/search/trending", &[], 300)
+                .await?;
+            let coins: Vec<_> = payload
+                .coins
+                .into_iter()
+                .take(15)
+                .map(|entry| {
+                    let coin = entry.item;
+                    MarketCoin {
+                        id: coin.id,
+                        symbol: coin.symbol,
+                        name: coin.name,
+                        rank: coin.market_cap_rank,
+                        image: [coin.large, coin.small, coin.thumb]
+                            .into_iter()
+                            .flatten()
+                            .find_map(IconUrl::new),
+                        ..MarketCoin::default()
+                    }
+                })
+                .collect();
+            self.icons.ingest(&coins);
             Ok(coins)
         })
     }
     fn coin<'a>(&'a self, id: &'a str) -> IconFuture<'a, MarketCoin> {
         Box::pin(async move {
-            AssetRef::Crypto(CryptoRef {
-                coingecko_id: Some(id.to_owned()),
-                symbol: "coin".into(),
-                token: None,
-            })
-            .validate()?;
-            let key = format!("market:coingecko:coin:{id}:v1");
-            let (json, fresh) = self
+            validate_coin_id(id)?;
+            let key = format!("market:coingecko:coin:{id}:v2");
+            let payload: CoinPayload = self
                 .payload(
                     &key,
                     &format!("/coins/{id}"),
@@ -167,24 +258,19 @@ impl CryptoMarketProvider for CoinGeckoMarketProvider {
                         ("community_data", "false"),
                         ("developer_data", "false"),
                     ],
+                    60,
                 )
                 .await?;
-            let coin = serde_json::from_str::<CoinPayload>(&json)
-                .map_err(|_| IconError::Unavailable)?
-                .into_coin();
+            let coin = payload.into_coin();
             if coin.id != id {
                 return Err(IconError::Unavailable);
             }
             self.icons.ingest(std::slice::from_ref(&coin));
-            if fresh {
-                let _ = self.cache.set(&key, &json, 60).await;
-            }
             Ok(coin)
         })
     }
 }
 
-/// Shared pool and HTTP client for market ingestion and crypto icons. FMP is absent.
 pub fn crypto_market_services(
     pool: deadpool_redis::Pool,
     api_key: Option<String>,
@@ -202,6 +288,5 @@ pub fn crypto_market_services(
     ));
     Ok((CryptoMarketService::new(market, icons.clone()), icons))
 }
-
 #[cfg(test)]
 mod tests;

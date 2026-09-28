@@ -6,6 +6,10 @@ use thiserror::Error;
 pub type IconFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, IconError>> + Send + 'a>>;
 #[derive(Debug, Error)]
 pub enum IconError {
+    #[error("Market asset not found")]
+    NotFound,
+    #[error("Upstream rate limit reached")]
+    RateLimited,
     #[error("Invalid asset reference")]
     InvalidReference,
     #[error("Icon dependency unavailable")]
@@ -59,11 +63,13 @@ pub enum AssetRef {
     Stock(StockRef),
 }
 
-fn valid_crypto_symbol(value: &str, context: &()) -> garde::Result {
-    if value.is_empty() {
+fn valid_crypto_symbol(value: &str, _: &()) -> garde::Result {
+    // Crypto symbols are display metadata, not URL path components (some contain
+    // '$' or Unicode). IDs/contracts are validated independently for requests.
+    if value.len() <= 64 && !value.chars().any(char::is_control) {
         Ok(())
     } else {
-        valid_symbol(value, context)
+        Err(garde::Error::new("Invalid crypto symbol"))
     }
 }
 fn valid_symbol(value: &str, _: &()) -> garde::Result {
