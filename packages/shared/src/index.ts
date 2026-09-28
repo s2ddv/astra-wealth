@@ -41,3 +41,5 @@ export interface NewsItem {
   category: "crypto" | "world";
   publishedAt: string;
 }
+
+export type { NewsArticleDto, NewsPageDto } from "./generated/rust/NewsDto.js";

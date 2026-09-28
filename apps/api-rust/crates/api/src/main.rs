@@ -54,7 +54,13 @@ async fn main() -> anyhow::Result<()> {
         infrastructure::redis_pool(&redis_url)?,
         setting("COINGECKO_API_KEY"),
     )?;
+    let news = infrastructure::news::news_service(
+        infrastructure::redis_pool(&redis_url)?,
+        setting("NEWSDATA_API_KEY"),
+    )?;
+    let news_router = zora_api::news::router(auth.clone(), news);
     let app = router(HealthState { dependencies }, auth)
+        .merge(news_router)
         .merge(zora_api::market::router(markets))
         .layer(
             CorsLayer::new()

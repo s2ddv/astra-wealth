@@ -34,3 +34,5 @@ impl UserService {
 
 pub mod asset_icon;
 pub mod market;
+
+pub mod news;

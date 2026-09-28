@@ -56,3 +56,5 @@ pub fn router(health: HealthState, auth: auth::AuthState) -> Router {
 pub mod asset_icon;
 
 pub mod market;
+
+pub mod news;

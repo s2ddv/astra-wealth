@@ -6,6 +6,10 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
+feed-rs = "2.3"
+ammonia = "4"
+html-escape = "0.2"
+tracing.workspace = true
 domain.workspace = true
 sqlx.workspace = true
 deadpool-redis.workspace = true

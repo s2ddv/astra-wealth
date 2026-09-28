@@ -1,0 +1,5 @@
+<?xml version="1.0"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>Fixture</title><link>https://example.com</link><description>Test</description>
+<item><title>Bitcoin &amp; mercados</title><link>https://example.com/one?utm_source=test#top</link><pubDate>Mon, 28 Sep 2026 12:00:00 GMT</pubDate><description><![CDATA[<p>Olá <b>mundo</b> &amp; economia.</p><script>bad()</script>]]></description><media:content url="https://example.com/image.jpg" type="image/jpeg" /></item>
+<item><title>Economia</title><link>https://example.com/two</link><pubDate>Mon, 28 Sep 2026 11:00:00 GMT</pubDate><enclosure url="https://example.com/two.png" type="image/png" length="42" /></item>
+<item><title>Unsafe</title><link>javascript:alert(1)</link><pubDate>Mon, 28 Sep 2026 10:00:00 GMT</pubDate></item>
+</channel></rss>

@@ -224,3 +224,55 @@ unwired and no stock route exists.
 Route tests cover validation before provider calls, DTOs, error statuses and
 stock isolation. Provider tests cover pagination/IDs, trending payloads, shared
 cache fills, corrupted cache recovery and rate-limit cooldowns.
+
+## News feed
+
+`GET /v1/news?category=all&lang=all&limit=20` uses the existing Supabase JWT
+extractor (`Authorization: Bearer <access_token>`). Parameters: `category` is
+`all|crypto|macro`, `lang` is `all|pt|en`, `limit` is 1–50, and `cursor` is the
+opaque `nextCursor` from the preceding response with the same filters.
+Returns `{ data: NewsArticleDto[], nextCursor: string | null, stale: boolean }`.
+Invalid queries return 400; unavailable providers with no stale cache return 503.
+The feature stores no news in Postgres; existing authentication still uses the
+existing user service.
+
+Put optional `NEWSDATA_API_KEY` in **apps/api-rust/.env**, alongside `REDIS_URL`
+and the existing auth/database settings. An empty/missing key logs a warning and
+uses RSS only. Run from this directory with `cargo run -p zora-api --bin zora-api`
+(port 3334). Never put the NewsData key in a `NEXT_PUBLIC_*` variable.
+The web app uses its existing Supabase cookie session via `/api/news` and
+`NEWS_API_URL=http://127.0.0.1:3334` in `apps/web/.env.local`.
+
+Merged lists (up to 200 articles) live at `news:v1:{category}:{lang}` for 300s;
+`news:v1:stale:{category}:{lang}` lasts 3600s and is returned if all providers fail.
+A shared in-process single-flight gate coalesces cache misses, with a second
+cache lookup inside the gate. RSS failures are isolated per source. Pagination
+uses offsets over the current cached snapshot; snapshots can change after TTL,
+so clients should deduplicate IDs when appending pages.
+
+NewsData `/crypto` and `/market` each fetch one page of 10 articles, both languages,
+with a 1200s cache independent of user filters. Atomic Redis Lua reserves a
+credit **before** the request: maximum 180 per UTC day and 30 in a rolling 900s
+window. A per-endpoint 1200s cooldown also includes failed requests and coordinates
+multiple API instances. Two successful endpoint requests every 20 minutes cost
+at most 144 credits/day. Redis failure disables paid calls (fail closed).
+Use a persistent, dedicated Redis with `maxmemory-policy noeviction` for the
+budget keys: manually deleting them, losing persistence or sharing the same API
+key with other clients invalidates the global credit accounting. The API cannot
+account for credits consumed outside this service.
+
+RSS URLs, live checks and exclusion reasons are in [news-sources.md](docs/news-sources.md).
+Only feed summaries are sanitized/truncated; full article pages are never scraped.
+NewsData free-plan articles may arrive about 12 hours late.
+
+Checks (unit fixtures need no upstream services):
+
+```sh
+cargo build --workspace --locked
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo fmt --all -- --check
+cargo run -p zora-api --bin export-types
+# Optional integration test, isolated local Redis/Valkey only:
+TEST_REDIS_URL=redis://127.0.0.1:56401 cargo test -p zora-infrastructure --test news_cache -- --ignored
+```

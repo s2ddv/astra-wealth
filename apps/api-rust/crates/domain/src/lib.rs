@@ -53,3 +53,5 @@ pub trait UserRepository: Send + Sync {
 
 pub mod asset_icon;
 pub mod market;
+
+pub mod news;
