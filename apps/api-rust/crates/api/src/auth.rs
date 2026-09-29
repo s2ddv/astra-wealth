@@ -2,7 +2,7 @@
 use application::UserService;
 use axum::{
     Json,
-    extract::FromRequestParts,
+    extract::{FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
@@ -42,12 +42,14 @@ impl IntoResponse for AuthRejection {
             .into_response()
     }
 }
-impl FromRequestParts<AuthState> for AuthenticatedUser {
+impl<S> FromRequestParts<S> for AuthenticatedUser
+where
+    S: Send + Sync,
+    AuthState: FromRef<S>,
+{
     type Rejection = AuthRejection;
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &AuthState,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let state = AuthState::from_ref(state);
         // With Supabase configured, the auth plugin runs before requireUserId.
         // Without it, match the legacy X-User-Id fallback in development only.
         let legacy = state.verifier.is_none() && !state.production;

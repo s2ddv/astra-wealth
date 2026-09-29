@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.symbol, a.amount::text AS \"amount!\",\n                a.\"walletId\" AS wallet_id, a.\"updatedAt\" AS updated_at FROM wallet_assets a\n                JOIN wallets w ON w.id = a.\"walletId\" WHERE w.id = $1 AND w.\"userId\" = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wallet_assets",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wallet_assets",
+            "name": "symbol"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "amount!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "wallet_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "wallet_assets",
+            "name": "walletId"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "wallet_assets",
+            "name": "updatedAt"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "fe10e753e5d4b22a06abf6cd6158e03d9476fd859a62768aa0bc39d778615f35"
+}

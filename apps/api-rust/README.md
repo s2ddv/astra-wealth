@@ -276,3 +276,20 @@ cargo run -p zora-api --bin export-types
 # Optional integration test, isolated local Redis/Valkey only:
 TEST_REDIS_URL=redis://127.0.0.1:56401 cargo test -p zora-infrastructure --test news_cache -- --ignored
 ```
+
+## Wallet CRUD
+
+The Rust API exposes authenticated `GET /v1/me/wallets`, `POST /v1/me/wallets`,
+`PATCH /v1/me/wallets/:id` (nickname only), and `DELETE /v1/me/wallets/:id`.
+Every operation uses the authenticated local user ID. Addresses are validated
+for EVM chains, Solana, and Bitcoin; trimmed nicknames allow 1–64 UTF-16 code
+units. Duplicate wallets return 409; foreign wallets return 404 for mutations.
+
+This stage reads existing assets with exact decimal strings, without on-chain
+lookups or a synchronization endpoint. `export-types` generates `WalletDto.ts`.
+Run ownership integration tests against a disposable database initialized with
+the current Prisma schema:
+
+```bash
+TEST_DATABASE_URL="$DATABASE_URL" cargo test -p zora-infrastructure --test wallet_repository -- --ignored
+```

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM wallets WHERE id = $1 AND \"userId\" = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "67ec00f9bb32b136f4a42fea947acf91c6b06413c75fbe47bd2bf5a54ce7c8e5"
+}

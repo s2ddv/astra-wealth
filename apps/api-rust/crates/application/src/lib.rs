@@ -32,6 +32,8 @@ impl UserService {
     // user's local id, NOT the Supabase auth id, owns wallets.userId.
 }
 
+pub mod wallet;
+
 pub mod asset_icon;
 pub mod market;
 

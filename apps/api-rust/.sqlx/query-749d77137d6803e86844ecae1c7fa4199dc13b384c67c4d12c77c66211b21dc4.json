@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wallets SET nickname = $3, \"updatedAt\" = timezone('UTC', now())\n                WHERE id = $1 AND \"userId\" = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "749d77137d6803e86844ecae1c7fa4199dc13b384c67c4d12c77c66211b21dc4"
+}

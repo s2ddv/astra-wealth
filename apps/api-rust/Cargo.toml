@@ -34,6 +34,9 @@ dotenvy = "0.15"
 url = "2"
 
 sha3 = "0.12.0"
+bs58 = "0.5.1"
+bitcoin = { version = "0.32.102", default-features = false, features = ["std"] }
+
 base64 = "0.22.1"
 
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }

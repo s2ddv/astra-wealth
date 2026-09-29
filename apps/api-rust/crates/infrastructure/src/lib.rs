@@ -79,6 +79,8 @@ impl HealthDependencies {
 pub mod auth;
 pub mod user;
 
+pub mod wallet;
+
 pub mod asset_icon;
 pub mod market;
 

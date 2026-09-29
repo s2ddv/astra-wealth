@@ -40,10 +40,13 @@ async fn main() -> anyhow::Result<()> {
         )?)),
         _ => None,
     };
-    let users =
-        application::UserService::new(Arc::new(infrastructure::user::SqlxUserRepository::new(
-            infrastructure::postgres_pool(&database_url)?,
-        )));
+    let pool = infrastructure::postgres_pool(&database_url)?;
+    let wallets = application::wallet::WalletService::new(Arc::new(
+        infrastructure::wallet::SqlxWalletRepository::new(pool.clone()),
+    ));
+    let users = application::UserService::new(Arc::new(
+        infrastructure::user::SqlxUserRepository::new(pool),
+    ));
     let auth = AuthState {
         users,
         verifier,
@@ -59,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
         setting("NEWSDATA_API_KEY"),
     )?;
     let news_router = zora_api::news::router(auth.clone(), news);
-    let app = router(HealthState { dependencies }, auth)
+    let app = router(HealthState { dependencies }, auth, wallets)
         .merge(news_router)
         .merge(zora_api::market::router(markets))
         .layer(

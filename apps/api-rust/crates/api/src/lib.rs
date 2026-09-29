@@ -1,4 +1,4 @@
-//! HTTP boundary. Wallet routes will compose with this router in the next stage.
+//! HTTP boundary for health and authenticated wallet CRUD.
 use axum::{Json, Router, extract::State, routing::get};
 use chrono::{SecondsFormat, Utc};
 use serde::Serialize;
@@ -46,11 +46,18 @@ pub fn health_router(state: HealthState) -> Router {
 pub mod auth;
 pub mod user;
 
-pub fn router(health: HealthState, auth: auth::AuthState) -> Router {
-    // Next: merge wallet::router().with_state(auth.clone()) here. The state is
-    // wired now so wallet handlers can use AuthenticatedUser without changes.
-    let protected: Router<auth::AuthState> = Router::new();
-    health_router(health).merge(protected.with_state(auth))
+pub mod wallet;
+
+pub fn router(
+    health: HealthState,
+    auth: auth::AuthState,
+    wallets: application::wallet::WalletService,
+) -> Router {
+    // Watchlist will be composed here using the same AuthState and its own service.
+    health_router(health).merge(wallet::router(wallet::WalletState {
+        auth,
+        wallets: Arc::new(wallets),
+    }))
 }
 
 pub mod asset_icon;
