@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { formatPercent } from "@/lib/format";
-import { mockPortfolio, mockPortfolioWallets } from "@/mocks/portfolio";
+import { mockPortfolio } from "@/mocks/portfolio";
 import { mockUserProfile } from "@/mocks/settings";
-import type { PortfolioPeriod, SummaryWallet } from "@/types/portfolio";
-import { AddWalletModal } from "./AddWalletModal";
+import type { PortfolioPeriod } from "@/types/portfolio";
+import Link from "next/link";
+import { useAccounts } from "./AccountsProvider";
+import { ContributionsKpis } from "./AccountPresentation";
+import { summarizeAccounts } from "@/mocks/accounts";
 import { WalletsSummary } from "./WalletsSummary";
 
 const PERIODS: PortfolioPeriod[] = ["24h", "7d", "30d", "1A", "All"];
@@ -13,15 +16,15 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visi
 
 interface PortfolioHeaderProps {
   userName?: string;
-  wallets?: SummaryWallet[];
   onPeriodChange?: (period: PortfolioPeriod) => void;
 }
 
-export function PortfolioHeader({ userName = mockUserProfile.displayName, wallets = mockPortfolioWallets, onPeriodChange }: PortfolioHeaderProps) {
+export function PortfolioHeader({ userName = mockUserProfile.displayName, onPeriodChange }: PortfolioHeaderProps) {
   const [greeting, setGreeting] = useState("Olá");
   const [period, setPeriod] = useState<PortfolioPeriod>("30d");
   const [currency, setCurrency] = useState<"USD" | "BRL">("USD");
-  const [modalOpen, setModalOpen] = useState(false);
+  const { accounts, contributions } = useAccounts();
+  const summary = summarizeAccounts(accounts, contributions);
   const [refreshMessage, setRefreshMessage] = useState("");
 
   useEffect(() => {
@@ -34,11 +37,16 @@ export function PortfolioHeader({ userName = mockUserProfile.displayName, wallet
     return () => window.clearInterval(interval);
   }, []);
 
+  // TODO(Etapa 4): usar histórico consolidado para a variação por período.
   const change = mockPortfolio.changes[period];
-  const totalUsd = wallets.reduce((total, wallet) => total + wallet.valueUsd, 0);
+  // TODO(Etapa 2): substituir o câmbio demonstrativo por cotação da API.
+  const totalUsd = Number(summary.currentValue) / mockPortfolio.usdToBrl;
   const total = new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(totalUsd * (currency === "BRL" ? mockPortfolio.usdToBrl : 1));
 
   return (
+    <div className="space-y-6">
+    <p className="text-body-sm text-primary">Demonstração · dados fictícios · valores consolidados em BRL</p>
+    <ContributionsKpis summary={summary} />
     <section aria-label="Resumo do patrimônio" className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
       <div className="flex min-w-0 flex-col gap-6">
         <header>
@@ -66,9 +74,9 @@ export function PortfolioHeader({ userName = mockUserProfile.displayName, wallet
             ))}
           </div>
           <div className="mt-7 grid grid-cols-2 gap-3 border-t border-outline-variant/30 pt-6">
-            <button type="button" onClick={() => setModalOpen(true)} className={`flex items-center justify-center gap-2 rounded-full bg-primary px-3 py-3 text-body-sm font-semibold text-on-primary hover:bg-primary/90 ${FOCUS}`}>
-              <span aria-hidden="true" className="material-symbols-outlined">add</span>Adicionar carteira
-            </button>
+            <Link href="/dashboard/accounts" className={`flex items-center justify-center gap-2 rounded-full bg-primary px-3 py-3 text-body-sm font-semibold text-on-primary hover:bg-primary/90 ${FOCUS}`}>
+              <span aria-hidden="true" className="material-symbols-outlined">add</span>Adicionar conta
+            </Link>
             <button type="button" onClick={() => setRefreshMessage("Demonstração: os saldos exibidos são simulados.")} className={`flex items-center justify-center gap-2 rounded-full border border-outline-variant px-3 py-3 text-body-sm font-medium hover:bg-surface-container-high ${FOCUS}`}>
               <span aria-hidden="true" className="material-symbols-outlined">refresh</span>Atualizar saldos
             </button>
@@ -76,8 +84,7 @@ export function PortfolioHeader({ userName = mockUserProfile.displayName, wallet
           <p role="status" className="mt-3 text-body-sm text-on-surface-variant">{refreshMessage}</p>
         </div>
       </div>
-      <WalletsSummary wallets={wallets} onAddWallet={() => setModalOpen(true)} />
-      <AddWalletModal open={modalOpen} onClose={() => setModalOpen(false)} />
-    </section>
+      <WalletsSummary accounts={accounts} />
+    </section></div>
   );
 }

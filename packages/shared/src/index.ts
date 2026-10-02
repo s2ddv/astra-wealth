@@ -43,3 +43,5 @@ export interface NewsItem {
 }
 
 export type { NewsArticleDto, NewsPageDto } from "./generated/rust/NewsDto.js";
+
+export * from "./accounts.js";

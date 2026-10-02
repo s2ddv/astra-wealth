@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountsProvider } from "./AccountsProvider";
 import { Sidebar } from "./SideBar";
 import { Topbar } from "./TopBar";
 import { DashboardShell } from "./DashboardShell";
@@ -10,12 +11,14 @@ export function DashboardLayoutClient({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <DashboardShell>
-        <Topbar userName="Alex Rivera" />
-        <div className="px-8 pb-12">{children}</div>
-      </DashboardShell>
-    </div>
+    <AccountsProvider>
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <DashboardShell>
+          <Topbar userName="Alex Rivera" />
+          <div className="px-8 pb-12">{children}</div>
+        </DashboardShell>
+      </div>
+    </AccountsProvider>
   );
 }

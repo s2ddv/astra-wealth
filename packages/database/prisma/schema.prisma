@@ -40,6 +40,8 @@ model User {
 
   authId String @unique
 
+  accounts            FinancialAccount[]
+  openFinanceConnections OpenFinanceConnection[]
   wallets             Wallet[]
   watchlists          Watchlist[]
   snapshots           PortfolioSnapshot[]
@@ -49,6 +51,7 @@ model User {
 }
 
 model Wallet {
+  account FinancialAccount?
   id       String  @id @default(uuid())
   address  String
   chain    Chain
@@ -136,6 +139,7 @@ model PortfolioSnapshot {
 }
 
 model ExchangeConnection {
+  account FinancialAccount?
   id       String   @id @default(uuid())
   exchange Exchange
 
@@ -151,4 +155,133 @@ model ExchangeConnection {
   @@unique([userId, exchange])
   @@index([userId])
   @@map("exchange_connections")
+}
+
+enum AccountKind {
+  WALLET
+  EXCHANGE
+  BANK
+  BROKERAGE
+  MANUAL
+}
+
+enum AssetClass {
+  CRYPTO
+  STOCK
+  REAL_ESTATE_FUND
+  ETF
+  FIXED_INCOME
+  MUTUAL_FUND
+  PENSION
+  CASH
+  OTHER
+}
+
+enum ContributionKind {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum DataOrigin {
+  MANUAL
+  IMPORTED
+}
+
+enum FiatCurrency {
+  BRL
+  USD
+}
+
+enum OpenFinanceProvider {
+  PLUGGY
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  NEEDS_REAUTH
+  EXPIRED
+  ERROR
+}
+
+model OpenFinanceConnection {
+  id                String              @id @default(cuid())
+  userId            String
+  provider          OpenFinanceProvider
+  externalItemId    String              // id da conexão no agregador; NUNCA credenciais
+  institutionName   String
+  status            ConnectionStatus    @default(ACTIVE)
+  consentExpiresAt  DateTime?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts FinancialAccount[]
+
+  @@unique([provider, externalItemId])
+  @@index([userId])
+}
+
+model FinancialAccount {
+  id                      String       @id @default(cuid())
+  userId                  String
+  kind                    AccountKind
+  name                    String       // ex.: "Itaú — Investimentos", "Carteira principal"
+  institutionName         String?
+  baseCurrency            FiatCurrency @default(BRL)
+  walletId                String?      @unique
+  exchangeConnectionId    String?      @unique
+  openFinanceConnectionId String?
+  externalAccountId       String?      // id da conta no agregador (Etapa 3)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet                Wallet?                @relation(fields: [walletId], references: [id])
+  exchangeConnection    ExchangeConnection?    @relation(fields: [exchangeConnectionId], references: [id])
+  openFinanceConnection OpenFinanceConnection? @relation(fields: [openFinanceConnectionId], references: [id])
+  holdings              Holding[]
+  contributions         Contribution[]
+
+  @@index([userId])
+}
+
+model Holding {
+  id            String     @id @default(cuid())
+  accountId     String
+  assetClass    AssetClass
+  symbol        String?    // ticker quando existir (PETR4, IVVB11)
+  name          String     // ex.: "CDB Banco X 110% CDI"
+  quantity      Decimal    @db.Decimal(28, 10)
+  unitPrice     Decimal?   @db.Decimal(28, 10)
+  currentValue  Decimal    @db.Decimal(28, 10)   // na moeda da conta
+  dueDate       DateTime?
+  origin        DataOrigin @default(MANUAL)
+  externalId    String?
+  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime   @default(now())
+
+  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalId])
+  @@index([accountId])
+}
+
+model Contribution {
+  id          String           @id @default(cuid())
+  accountId   String
+  kind        ContributionKind
+  amount      Decimal          @db.Decimal(28, 10)
+  currency    FiatCurrency
+  fxRateToBrl Decimal?         @db.Decimal(18, 8)   // cotação no dia, se moeda != BRL
+  occurredAt  DateTime
+  note        String?
+  origin      DataOrigin       @default(MANUAL)
+  externalId  String?          // idempotência da importação (Etapa 3)
+  createdAt   DateTime         @default(now())
+
+  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalId])
+  @@index([accountId, occurredAt])
 }
