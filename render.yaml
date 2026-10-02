@@ -1,0 +1,37 @@
+# Both services explicitly use the free plan.
+services:
+  - type: web
+    name: astra-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./apps/api-rust/Dockerfile
+    dockerContext: ./apps/api-rust
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: RUST_LOG
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: astra-cache
+          type: keyvalue
+          property: connectionString
+  - type: keyvalue
+    name: astra-cache
+    plan: free
+    region: virginia
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru

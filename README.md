@@ -72,6 +72,8 @@ preservar autenticação, isolamento por usuário e proteção de credenciais.
 
 - [API Rust](apps/api-rust/README.md)
 - [01 — Renomeação e configuração externa](docs/01-renomeacao-astra.md)
+- [02 — Contas e aportes](docs/02-contas-e-aportes.md)
+- [03 — Deploy gratuito](docs/03-deploy-gratuito.md)
 
 ## Contribuição e licença
 
