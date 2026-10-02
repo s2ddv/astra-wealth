@@ -76,7 +76,7 @@ function LoginPageInner() {
               style={{ fontSize: '32px', textAlign: 'center' }}
               className="whitespace-nowrap font-semibold leading-tight text-zinc-900"
             >
-              Sign in to Zora
+              Sign in to Astra
             </h1>
           </div>
 

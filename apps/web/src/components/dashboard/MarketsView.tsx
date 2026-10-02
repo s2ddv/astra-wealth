@@ -9,7 +9,9 @@ import { AssetBadge, MarketTable } from "./MarketTable";
 import { MarketDetails } from "./MarketDetails";
 import { WatchlistButton } from "./WatchlistButton";
 
-const STORAGE_KEY = "zora.markets.watchlist.v1";
+const STORAGE_KEY = "astra.markets.watchlist.v1";
+// Compatibility: preserve existing browser watchlists during the brand migration.
+const LEGACY_STORAGE_KEY = "zora.markets.watchlist.v1";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary";
 const classes = Object.entries(ASSET_CLASS_LABELS) as [AssetClass, string][];
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -38,11 +40,14 @@ export function MarketsView() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const current = localStorage.getItem(STORAGE_KEY);
+      const saved = current ?? localStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved !== null) {
         const ids: unknown = JSON.parse(saved);
         if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) throw new Error("Invalid watchlist");
-        setWatchlist([...new Set(ids.map((id) => legacyIds[id] ?? id).filter((id) => /^crypto:[a-z0-9][a-z0-9-]{0,99}$/.test(id) || demos.some((asset) => asset.id === id)))].slice(0, 100));
+        const normalized = [...new Set(ids.map((id) => legacyIds[id] ?? id).filter((id) => /^crypto:[a-z0-9][a-z0-9-]{0,99}$/.test(id) || demos.some((asset) => asset.id === id)))].slice(0, 100);
+        setWatchlist(normalized);
+        if (current === null) localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
       }
     } catch { setStorageError(true); }
     setReady(true);

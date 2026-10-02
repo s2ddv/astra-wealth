@@ -25,10 +25,10 @@ export function Sidebar({ onAddAssets, onLogout }: SidebarProps) {
         {/* Brand */}
         <div className="flex items-center gap-3 px-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-on-primary">
-            Z
+            A
           </div>
           <div>
-            <h1 className="text-headline-md font-bold text-on-surface">Zora</h1>
+            <h1 className="text-headline-md font-bold text-on-surface">Astra</h1>
             <p className="text-label-caps uppercase text-on-surface-variant opacity-60">
               Wealth Dashboard
             </p>
