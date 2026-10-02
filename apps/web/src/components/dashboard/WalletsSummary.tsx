@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { FinancialAccountDTO } from "@astra-wealth/shared/accounts";
-import { ACCOUNT_ICONS, money } from "./AccountPresentation";
+import { AccountInstitutionIcon, money } from "./AccountPresentation";
 import styles from "./Overview.module.css";
 
 const STATUS_LABELS = {
@@ -31,7 +31,7 @@ export function WalletsSummary({ accounts, formatValue = money }: {
       {accounts.length === 0 ? <div className={styles.empty}><p>Nenhuma conta adicionada.</p><p>Adicione uma conta para começar a acompanhar seu patrimônio.</p></div> : <ul className={styles.accounts}>
         {sortedAccounts.map((account) => <li key={account.id}>
           <Link href={`/dashboard/accounts/${account.id}`} className={styles.accountLink}>
-            <span aria-hidden="true" className={`material-symbols-outlined ${styles.accountIcon}`}>{ACCOUNT_ICONS[account.kind]}</span>
+            <AccountInstitutionIcon account={account} className={styles.accountIcon} />
             <div className={styles.accountContent}>
               <p className={styles.accountName}>{account.name}</p>
               <p className={styles.accountValue}>{formatValue(account.currentValue)}</p>

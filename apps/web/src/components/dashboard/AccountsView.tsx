@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -21,7 +22,7 @@ import {
 } from "@/mocks/accounts";
 import { useAccounts } from "./AccountsProvider";
 import {
-  ACCOUNT_ICONS,
+  AccountInstitutionIcon,
   ACCOUNT_LABELS,
   ContributionsKpis,
   money,
@@ -393,7 +394,27 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
 export function AccountsView({ selectedId }: { selectedId?: string }) {
   const { accounts, contributions } = useAccounts();
   const [modal, setModal] = useState<"account" | "contribution" | null>(null);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const selected = accounts.find((account) => account.id === selectedId);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleAccounts = useMemo(
+    () =>
+      normalizedQuery
+        ? accounts.filter((account) =>
+            [
+              account.name,
+              account.institutionName ?? "Conta manual",
+              ACCOUNT_LABELS[account.kind],
+              syncLabel(account),
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(normalizedQuery),
+          )
+        : accounts,
+    [accounts, normalizedQuery],
+  );
   if (selectedId && !selected)
     return (
       <section className={PANEL}>
@@ -457,27 +478,85 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
           <ContributionsKpis
             summary={summarizeAccounts(accounts, contributions)}
           />
-          {(Object.keys(ACCOUNT_LABELS) as AccountKind[]).map((kind) => (
-            <section key={kind}>
-              <h2 className="mb-3 text-title-md font-semibold">
-                {ACCOUNT_LABELS[kind]}
+          <div className={PANEL}>
+            <label
+              htmlFor="accounts-search"
+              className="mb-3 block text-title-sm font-semibold"
+            >
+              Encontrar conta
+            </label>
+            <div
+              role="presentation"
+              onClick={() => searchRef.current?.focus()}
+              className="group flex min-h-14 cursor-text items-center gap-3 rounded-2xl border border-outline-variant/70 bg-surface-container-high px-4 transition-colors hover:border-primary/70 focus-within:border-primary focus-within:bg-surface focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary"
+            >
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined text-[22px] text-primary transition-transform group-focus-within:scale-105"
+              >
+                search
+              </span>
+              <input
+                id="accounts-search"
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Busque por nome, instituição ou tipo de conta"
+                className="min-w-0 flex-1 bg-transparent py-3 text-body-md text-on-surface outline-none placeholder:text-on-surface-variant"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setQuery("");
+                    searchRef.current?.focus();
+                  }}
+                  aria-label="Limpar busca"
+                  className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined">
+                    close
+                  </span>
+                </button>
+              )}
+            </div>
+            <p className="mt-3 text-body-sm text-on-surface-variant">
+              {normalizedQuery
+                ? `${visibleAccounts.length} ${visibleAccounts.length === 1 ? "conta encontrada" : "contas encontradas"}`
+                : "Filtre rapidamente sua lista antes de abrir os detalhes."}
+            </p>
+          </div>
+          {normalizedQuery && visibleAccounts.length === 0 && (
+            <section className={PANEL}>
+              <h2 className="text-title-md font-semibold">
+                Nenhuma conta encontrada
               </h2>
-              <div className="grid gap-4 xl:grid-cols-2">
-                {accounts
-                  .filter((account) => account.kind === kind)
-                  .map((account) => (
+              <p className="mt-2 text-body-sm text-on-surface-variant">
+                Tente buscar por instituição, tipo de conta ou nome cadastrado.
+              </p>
+            </section>
+          )}
+          {(Object.keys(ACCOUNT_LABELS) as AccountKind[]).map((kind) => {
+            const kindAccounts = visibleAccounts.filter(
+              (account) => account.kind === kind,
+            );
+            if (kindAccounts.length === 0) return null;
+            return (
+              <section key={kind}>
+                <h2 className="mb-3 text-title-md font-semibold">
+                  {ACCOUNT_LABELS[kind]}
+                </h2>
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {kindAccounts.map((account) => (
                     <Link
                       href={`/dashboard/accounts/${account.id}`}
                       key={account.id}
                       className={`${PANEL} block transition-colors hover:border-primary/60 focus-visible:outline-2 focus-visible:outline-primary`}
                     >
                       <div className="flex items-center gap-3">
-                        <span
-                          aria-hidden="true"
-                          className="material-symbols-outlined rounded-full bg-primary/10 p-3 text-primary"
-                        >
-                          {ACCOUNT_ICONS[kind]}
-                        </span>
+                        <AccountInstitutionIcon account={account} />
                         <div className="min-w-0">
                           <h3 className="truncate font-semibold">
                             {account.name}
@@ -521,9 +600,10 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
                       </p>
                     </Link>
                   ))}
-              </div>
-            </section>
-          ))}
+                </div>
+              </section>
+            );
+          })}
         </>
       )}
       {modal === "account" && <AddAccount onClose={() => setModal(null)} />}
