@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+
 import { AccountsProvider } from "./AccountsProvider";
 import { Sidebar } from "./SideBar";
 import { Topbar } from "./TopBar";
@@ -10,13 +12,14 @@ export function DashboardLayoutClient({
 }: {
   children: React.ReactNode;
 }) {
+  const isOverview = usePathname() === "/dashboard/overview";
   return (
     <AccountsProvider>
       <div className="min-h-screen bg-background">
         <Sidebar />
         <DashboardShell>
-          <Topbar userName="Alex Rivera" />
-          <div className="px-8 pb-12">{children}</div>
+          {!isOverview && <Topbar userName="Alex Rivera" />}
+          <main className="px-4 pb-12 pt-6 sm:px-8">{children}</main>
         </DashboardShell>
       </div>
     </AccountsProvider>
