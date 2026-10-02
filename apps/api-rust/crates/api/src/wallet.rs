@@ -322,6 +322,10 @@ impl IntoResponse for WalletHttpError {
                 Json(json!({"error":"Wallet already exists"})),
             )
                 .into_response(),
+            Self::Repository(WalletRepositoryError::LinkedAccount) => (
+                StatusCode::CONFLICT,
+                Json(json!({"code":"WALLET_LINKED_TO_ACCOUNT","error":"Remove the linked financial account before deleting this wallet"})),
+            ).into_response(),
             Self::Repository(error) => {
                 tracing::error!(%error, "Wallet operation failed");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"statusCode":500,"error":"Internal Server Error","message":"Internal Server Error"}))).into_response()

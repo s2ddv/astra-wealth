@@ -99,6 +99,11 @@ fn error(error: sqlx::Error) -> WalletRepositoryError {
         .is_some_and(|error| error.is_unique_violation())
     {
         WalletRepositoryError::Conflict
+    } else if error
+        .as_database_error()
+        .is_some_and(|error| error.constraint() == Some("FinancialAccount_walletId_fkey"))
+    {
+        WalletRepositoryError::LinkedAccount
     } else {
         WalletRepositoryError::Unavailable(Box::new(error))
     }
@@ -232,15 +237,39 @@ impl WalletRepository for SqlxWalletRepository {
     }
     fn delete<'a>(&'a self, id: &'a str, user_id: &'a str) -> WalletFuture<'a, u64> {
         Box::pin(async move {
-            sqlx::query!(
-                r#"DELETE FROM wallets WHERE id = $1 AND "userId" = $2"#,
-                id,
-                user_id
+            let mut tx = self.pool.begin().await.map_err(error)?;
+            // Account linking takes this same wallet lock. Ownership is checked
+            // before reading links, and linking cannot race this deletion.
+            let owned = sqlx::query_scalar::<_, String>(
+                r#"SELECT id FROM wallets WHERE id=$1 AND "userId"=$2 FOR UPDATE"#,
             )
-            .execute(&self.pool)
+            .bind(id)
+            .bind(user_id)
+            .fetch_optional(&mut *tx)
             .await
-            .map(|result| result.rows_affected())
-            .map_err(error)
+            .map_err(error)?;
+            if owned.is_none() {
+                return Ok(0);
+            }
+            let linked = sqlx::query_scalar::<_, bool>(
+                r#"SELECT EXISTS(SELECT 1 FROM "FinancialAccount" WHERE "walletId"=$1)"#,
+            )
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(error)?;
+            if linked {
+                return Err(WalletRepositoryError::LinkedAccount);
+            }
+            let count = sqlx::query(r#"DELETE FROM wallets WHERE id=$1 AND "userId"=$2"#)
+                .bind(id)
+                .bind(user_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(error)?
+                .rows_affected();
+            tx.commit().await.map_err(error)?;
+            Ok(count)
         })
     }
 }

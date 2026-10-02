@@ -108,7 +108,7 @@ O frontend consulta o Rust através de rotas servidoras do Next e usa polling de
 
 O plano antigo que citava CryptoPanic e NewsAPI não representa a implementação atual.
 
-### Contas e aportes — interface implementada, API pendente
+### Contas e aportes — API Rust persistente, integração da interface pendente
 
 Existe uma primeira etapa funcional de interface:
 
@@ -123,7 +123,7 @@ Limites importantes:
 
 - Os dados ainda são mocks/estado local.
 - Recarregar a página descarta alterações feitas na interface.
-- Ainda não existem rotas Rust ou Fastify para contas, holdings e contribuições.
+- Rust agora oferece `/v1/accounts` e rotas de holdings/contribuições com PostgreSQL, isolamento por usuário e decimais em strings; contrato em `docs/05-api-contas-persistentes.md`.
 - A próxima implementação desse domínio deve substituir os mocks por API sem misturar a lógica de apresentação com persistência.
 
 ### Watchlists, portfolio e exchanges — ainda não migrados para Rust
@@ -195,8 +195,8 @@ Se `target/` estiver read-only, usar um `CARGO_TARGET_DIR` temporário e registr
 
 ## 7. Próximas prioridades recomendadas
 
-1. Implementar a API persistente de contas, holdings e contribuições.
-2. Definir como contas financeiras se relacionam com carteiras cripto sem inferir aportes de transferências on-chain.
+1. **Backend entregue:** API persistente de contas, holdings e contribuições; conexão da interface permanece em tarefa separada.
+2. **Definido e implementado:** vínculo exclusivo com carteira do mesmo usuário, holdings separados de wallet-assets e aportes exclusivamente explícitos.
 3. Migrar watchlists para Rust preservando o contrato existente.
 4. Migrar wallet-assets e sincronização on-chain com evidência real do provedor.
 5. Implementar snapshots e cálculo persistente do portfolio.
@@ -212,3 +212,4 @@ O critério de prioridade é entregar primeiro dados reais, seguros e persistent
 - `docs/01-renomeacao-astra.md` — histórico da renomeação.
 - `docs/02-contas-e-aportes.md` — implementação da primeira etapa de contas/aportes.
 - `docs/03-deploy-gratuito.md` — hospedagem e limitações do deploy.
+- `docs/05-api-contas-persistentes.md` — contratos Rust e relação entre contas e carteiras.

@@ -174,6 +174,8 @@ fn evm_address(address: &str) -> bool {
 }
 #[derive(Debug, Error)]
 pub enum WalletRepositoryError {
+    #[error("Wallet is linked to a financial account")]
+    LinkedAccount,
     #[error("Wallet already exists")]
     Conflict,
     #[error("Wallet repository unavailable")]

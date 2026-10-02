@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
         infrastructure::wallet::SqlxWalletRepository::new(pool.clone()),
     ));
     let users = application::UserService::new(Arc::new(
-        infrastructure::user::SqlxUserRepository::new(pool),
+        infrastructure::user::SqlxUserRepository::new(pool.clone()),
     ));
     let auth = AuthState {
         users,
@@ -61,8 +61,15 @@ async fn main() -> anyhow::Result<()> {
         infrastructure::redis_pool(&redis_url)?,
         setting("NEWSDATA_API_KEY"),
     )?;
+    let accounts_router = astra_api::accounts::router(astra_api::accounts::AccountState {
+        auth: auth.clone(),
+        accounts: application::accounts::AccountService::new(Arc::new(
+            infrastructure::accounts::SqlxAccountRepository::new(pool),
+        )),
+    });
     let news_router = astra_api::news::router(auth.clone(), news);
     let app = router(HealthState { dependencies }, auth, wallets)
+        .merge(accounts_router)
         .merge(news_router)
         .merge(astra_api::market::router(markets))
         .layer(

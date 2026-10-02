@@ -65,3 +65,5 @@ pub mod asset_icon;
 pub mod market;
 
 pub mod news;
+
+pub mod accounts;
