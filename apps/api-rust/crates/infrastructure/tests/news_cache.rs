@@ -1,7 +1,7 @@
 //! Local Redis/Valkey only; no provider/network API calls.
+use astra_infrastructure::{news::cache::RedisNewsCache, redis_pool};
 use deadpool_redis::redis::cmd;
 use domain::news::NewsCache;
-use zora_infrastructure::{news::cache::RedisNewsCache, redis_pool};
 
 #[tokio::test]
 #[ignore = "Set TEST_REDIS_URL to an isolated local Redis/Valkey instance"]

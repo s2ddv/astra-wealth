@@ -1,4 +1,8 @@
 use application::{UserService, wallet::WalletService};
+use astra_api::{
+    auth::AuthState,
+    wallet::{WalletState, router},
+};
 use axum::{
     Router,
     body::{Body, to_bytes},
@@ -10,10 +14,6 @@ use domain::{
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tower::ServiceExt;
-use zora_api::{
-    auth::AuthState,
-    wallet::{WalletState, router},
-};
 
 struct Users;
 impl UserRepository for Users {

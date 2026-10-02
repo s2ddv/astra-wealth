@@ -1,4 +1,5 @@
 use anyhow::Context;
+use astra_api::{HealthState, auth::AuthState, router};
 use axum::http::{HeaderValue, Method};
 use std::{env, sync::Arc};
 use tower_http::{
@@ -6,7 +7,6 @@ use tower_http::{
     trace::TraceLayer,
 };
 use tracing_subscriber::EnvFilter;
-use zora_api::{HealthState, auth::AuthState, router};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -61,10 +61,10 @@ async fn main() -> anyhow::Result<()> {
         infrastructure::redis_pool(&redis_url)?,
         setting("NEWSDATA_API_KEY"),
     )?;
-    let news_router = zora_api::news::router(auth.clone(), news);
+    let news_router = astra_api::news::router(auth.clone(), news);
     let app = router(HealthState { dependencies }, auth, wallets)
         .merge(news_router)
-        .merge(zora_api::market::router(markets))
+        .merge(astra_api::market::router(markets))
         .layer(
             CorsLayer::new()
                 .allow_origin(origin)
@@ -85,7 +85,7 @@ async fn main() -> anyhow::Result<()> {
         .parse::<u16>()?;
     let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into());
     let listener = tokio::net::TcpListener::bind((host.as_str(), port)).await?;
-    tracing::info!(%host, port, "Zora Rust API listening");
+    tracing::info!(%host, port, "Astra Rust API listening");
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown())
         .await?;

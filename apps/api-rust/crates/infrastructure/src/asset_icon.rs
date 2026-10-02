@@ -16,7 +16,7 @@ pub fn asset_http_client() -> Result<Client, reqwest::Error> {
         .timeout(Duration::from_secs(5))
         .connect_timeout(Duration::from_secs(2))
         .redirect(reqwest::redirect::Policy::none())
-        .user_agent("zora-wealth/asset-service")
+        .user_agent("astra-wealth/asset-service")
         .build()
 }
 

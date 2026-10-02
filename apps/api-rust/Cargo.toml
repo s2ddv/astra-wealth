@@ -9,9 +9,9 @@ rust-version = "1.94"
 publish = false
 
 [workspace.dependencies]
-domain = { package = "zora-domain", path = "crates/domain" }
-application = { package = "zora-application", path = "crates/application" }
-infrastructure = { package = "zora-infrastructure", path = "crates/infrastructure" }
+domain = { package = "astra-domain", path = "crates/domain" }
+application = { package = "astra-application", path = "crates/application" }
+infrastructure = { package = "astra-infrastructure", path = "crates/infrastructure" }
 axum = { version = "0.8.9", features = ["macros"] }
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "signal", "net", "time", "sync"] }
 sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls-ring", "macros", "chrono"] }

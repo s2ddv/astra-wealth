@@ -1,4 +1,8 @@
 use application::UserService;
+use astra_api::{
+    auth::{AuthState, AuthenticatedUser},
+    user::UserDto,
+};
 use axum::{
     Json, Router,
     body::{Body, to_bytes},
@@ -14,10 +18,6 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 use tower::ServiceExt;
-use zora_api::{
-    auth::{AuthState, AuthenticatedUser},
-    user::UserDto,
-};
 
 const SECRET: &str = "test-only-secret-not-a-real-supabase-secret";
 fn demo_user() -> User {

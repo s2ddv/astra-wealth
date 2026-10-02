@@ -1,4 +1,4 @@
-use zora_domain::wallet::{Chain, NewWallet, NicknameUpdate};
+use astra_domain::wallet::{Chain, NewWallet, NicknameUpdate};
 
 #[test]
 fn validates_each_chain_and_evm_checksum() {

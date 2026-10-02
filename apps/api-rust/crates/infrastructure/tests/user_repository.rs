@@ -1,7 +1,7 @@
 use application::UserService;
+use astra_infrastructure::{postgres_pool, user::SqlxUserRepository};
 use domain::{AuthIdentity, NewUser, RepositoryError, UserRepository, UserUpdate};
 use std::sync::Arc;
-use zora_infrastructure::{postgres_pool, user::SqlxUserRepository};
 
 #[tokio::test]
 #[ignore = "Requires TEST_DATABASE_URL pointing to an isolated database with the Prisma schema"]
@@ -134,6 +134,6 @@ async fn prisma_user_contract_and_concurrent_authentication() {
 
 #[test]
 fn rejects_supavisor_transaction_pooler() {
-    assert!(postgres_pool("postgres://zora:zora@localhost:6543/zora").is_err());
+    assert!(postgres_pool("postgres://astra:astra@localhost:6543/astra").is_err());
     assert!(postgres_pool("not a url").is_err());
 }

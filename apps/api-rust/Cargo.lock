@@ -57,6 +57,80 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
+name = "astra-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "astra-application",
+ "astra-domain",
+ "astra-infrastructure",
+ "axum",
+ "chrono",
+ "dotenvy",
+ "garde",
+ "jsonwebtoken",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tower-http 0.7.1",
+ "tracing",
+ "tracing-subscriber",
+ "ts-rs",
+]
+
+[[package]]
+name = "astra-application"
+version = "0.1.0"
+dependencies = [
+ "astra-domain",
+ "futures-util",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "astra-domain"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "bitcoin",
+ "bs58",
+ "chrono",
+ "garde",
+ "serde",
+ "sha3",
+ "thiserror",
+ "url",
+]
+
+[[package]]
+name = "astra-infrastructure"
+version = "0.1.0"
+dependencies = [
+ "ammonia",
+ "anyhow",
+ "astra-application",
+ "astra-domain",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "deadpool-redis",
+ "feed-rs",
+ "html-escape",
+ "jsonwebtoken",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha3",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "async-lock"
 version = "3.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3748,77 +3822,3 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
-
-[[package]]
-name = "zora-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "dotenvy",
- "garde",
- "jsonwebtoken",
- "serde",
- "serde_json",
- "tokio",
- "tower",
- "tower-http 0.7.1",
- "tracing",
- "tracing-subscriber",
- "ts-rs",
- "zora-application",
- "zora-domain",
- "zora-infrastructure",
-]
-
-[[package]]
-name = "zora-application"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "tokio",
- "tracing",
- "zora-domain",
-]
-
-[[package]]
-name = "zora-domain"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "bitcoin",
- "bs58",
- "chrono",
- "garde",
- "serde",
- "sha3",
- "thiserror",
- "url",
-]
-
-[[package]]
-name = "zora-infrastructure"
-version = "0.1.0"
-dependencies = [
- "ammonia",
- "anyhow",
- "axum",
- "base64 0.22.1",
- "chrono",
- "deadpool-redis",
- "feed-rs",
- "html-escape",
- "jsonwebtoken",
- "reqwest",
- "serde",
- "serde_json",
- "sha3",
- "sqlx",
- "tokio",
- "tracing",
- "url",
- "uuid",
- "zora-application",
- "zora-domain",
-]

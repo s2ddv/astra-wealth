@@ -26,7 +26,7 @@ async fn health(State(state): State<HealthState>) -> Json<HealthResponse> {
     let (database, redis) = state.dependencies.check().await;
     Json(HealthResponse {
         status: if database && redis { "ok" } else { "degraded" },
-        service: "zora-wealth-api",
+        service: "astra-wealth-api",
         timestamp: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
         checks: Checks {
             database: if database { "ok" } else { "error" },

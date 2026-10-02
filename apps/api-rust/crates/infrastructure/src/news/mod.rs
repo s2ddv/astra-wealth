@@ -12,7 +12,7 @@ pub fn news_service(
     let client = reqwest::Client::builder()
         .retry(reqwest::retry::never())
         .timeout(Duration::from_secs(5))
-        .user_agent("ZoraWealth-News/1.0")
+        .user_agent("AstraWealth-News/1.0")
         .build()?;
     let cache = Arc::new(cache::RedisNewsCache::new(pool));
     let mut providers: Vec<Arc<dyn NewsProvider>> = sources::SOURCES
@@ -27,7 +27,7 @@ pub fn news_service(
             .timeout(Duration::from_secs(5))
             .retry(reqwest::retry::never())
             .redirect(reqwest::redirect::Policy::none())
-            .user_agent("ZoraWealth-News/1.0")
+            .user_agent("AstraWealth-News/1.0")
             .build()?;
         for endpoint in ["crypto", "market"] {
             providers.push(Arc::new(newsdata::NewsDataProvider::new(

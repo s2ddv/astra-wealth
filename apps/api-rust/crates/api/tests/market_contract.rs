@@ -73,7 +73,7 @@ fn app(fail: bool) -> (axum::Router, Arc<AtomicUsize>) {
     let calls = Arc::new(AtomicUsize::new(0));
     let icons = AssetIconService::crypto(Arc::new(NoIcons), Arc::new(NoIcons), Arc::new(NoIcons));
     (
-        zora_api::market::router(CryptoMarketService::new(
+        astra_api::market::router(CryptoMarketService::new(
             Arc::new(Markets {
                 calls: calls.clone(),
                 fail,

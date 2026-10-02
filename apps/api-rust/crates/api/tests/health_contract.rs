@@ -1,3 +1,4 @@
+use astra_api::{HealthState, health_router};
 use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode},
@@ -5,7 +6,6 @@ use axum::{
 use serde_json::Value;
 use std::sync::Arc;
 use tower::ServiceExt;
-use zora_api::{HealthState, health_router};
 
 #[tokio::test]
 async fn health_aliases_preserve_fastify_degraded_contract() {
@@ -30,7 +30,7 @@ async fn health_aliases_preserve_fastify_degraded_contract() {
                     .unwrap();
             assert_eq!(value.as_object().unwrap().len(), 4);
             assert_eq!(value["status"], "degraded");
-            assert_eq!(value["service"], "zora-wealth-api");
+            assert_eq!(value["service"], "astra-wealth-api");
             assert_eq!(
                 value["checks"],
                 serde_json::json!({"database":"error","redis":"error"})
@@ -54,7 +54,7 @@ async fn health_aliases_preserve_fastify_degraded_contract() {
 
 #[test]
 fn production_requires_supabase_configuration() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_zora-api"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_astra-api"))
         .current_dir(std::env::temp_dir())
         .env_clear()
         .env("NODE_ENV", "production")

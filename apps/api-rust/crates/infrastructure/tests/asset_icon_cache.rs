@@ -1,5 +1,5 @@
+use astra_infrastructure::{asset_icon::RedisAssetCache, redis_pool};
 use domain::asset_icon::AssetCache;
-use zora_infrastructure::{asset_icon::RedisAssetCache, redis_pool};
 
 #[tokio::test]
 #[ignore = "Requires TEST_REDIS_URL pointing to an isolated Redis/Valkey instance"]

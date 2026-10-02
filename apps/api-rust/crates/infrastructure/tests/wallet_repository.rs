@@ -1,5 +1,5 @@
+use astra_infrastructure::{postgres_pool, wallet::SqlxWalletRepository};
 use domain::wallet::{Chain, NewWallet, WalletRepository, WalletRepositoryError};
-use zora_infrastructure::{postgres_pool, wallet::SqlxWalletRepository};
 
 #[tokio::test]
 #[ignore = "Requires TEST_DATABASE_URL pointing to an isolated database with the Prisma schema"]
