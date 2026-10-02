@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { WalletSummary } from "@zora-wealth/shared";
+import type { WalletSummary } from "@astra-wealth/shared";
 import { apiFetch } from "../lib/api";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;

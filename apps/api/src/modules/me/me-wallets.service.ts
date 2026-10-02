@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { CreateWalletInput } from "@zora-wealth/shared";
+import type { CreateWalletInput } from "@astra-wealth/shared";
 import { WalletRepository } from "../../repositories/wallet.repository.js";
 import { WalletAssetRepository } from "../../repositories/wallet-asset.repository.js";
 import { WalletService } from "../wallet/wallet.service.js";

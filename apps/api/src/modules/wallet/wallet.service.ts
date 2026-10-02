@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { WalletBalance, WalletSummary } from "@zora-wealth/shared";
+import type { WalletBalance, WalletSummary } from "@astra-wealth/shared";
 import { AlchemyClient } from "../../clients/alchemy.js";
 import { MoralisClient } from "../../clients/moralis.js";
 

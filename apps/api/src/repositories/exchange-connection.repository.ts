@@ -1,4 +1,4 @@
-import type { PrismaClient, Exchange } from "@zora-wealth/database";
+import type { PrismaClient, Exchange } from "@astra-wealth/database";
 
 export class ExchangeConnectionRepository {
   constructor(private readonly db: PrismaClient) {}

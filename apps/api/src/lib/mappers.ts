@@ -4,14 +4,14 @@ import type {
   WalletAsset,
   Watchlist,
   WatchlistItem,
-} from "@zora-wealth/database";
+} from "@astra-wealth/database";
 import type {
   PortfolioSnapshotDto,
   WalletAssetDto,
   WalletDto,
   WatchlistDto,
   WatchlistItemDto,
-} from "@zora-wealth/shared";
+} from "@astra-wealth/shared";
 
 export function toWalletAssetDto(asset: WalletAsset): WalletAssetDto {
   return {

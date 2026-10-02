@@ -1,5 +1,5 @@
 {
-  "name": "@zora-wealth/api",
+  "name": "@astra-wealth/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
-    "@zora-wealth/database": "workspace:*",
-    "@zora-wealth/shared": "workspace:*",
+    "@astra-wealth/database": "workspace:*",
+    "@astra-wealth/shared": "workspace:*",
     "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.110.7",
     "fastify": "^5.9.0",

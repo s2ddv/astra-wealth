@@ -1,5 +1,5 @@
 import fp from "fastify-plugin";
-import { prisma, type PrismaClient } from "@zora-wealth/database";
+import { prisma, type PrismaClient } from "@astra-wealth/database";
 import type { FastifyInstance } from "fastify";
 
 declare module "fastify" {

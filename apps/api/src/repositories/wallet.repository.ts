@@ -1,4 +1,4 @@
-import type { Chain, PrismaClient } from "@zora-wealth/database";
+import type { Chain, PrismaClient } from "@astra-wealth/database";
 
 export class WalletRepository {
   constructor(private readonly db: PrismaClient) {}

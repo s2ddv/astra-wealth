@@ -1,4 +1,4 @@
-import type { PrismaClient, SnapshotSource } from "@zora-wealth/database";
+import type { PrismaClient, SnapshotSource } from "@astra-wealth/database";
 
 export class PortfolioSnapshotRepository {
   constructor(private readonly db: PrismaClient) {}

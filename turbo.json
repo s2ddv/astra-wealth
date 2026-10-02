@@ -1,0 +1,41 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "generate": {
+      "outputs": [
+        "src/generated/**"
+      ]
+    },
+    "build": {
+      "dependsOn": [
+        "^build",
+        "@astra-wealth/database#generate"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
+    },
+    "lint": {
+      "dependsOn": [
+        "@astra-wealth/database#generate"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": [
+        "@astra-wealth/database#generate"
+      ]
+    },
+    "@astra-wealth/web#typecheck": {
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "@astra-wealth/web#lint": {
+      "dependsOn": [
+        "typecheck"
+      ]
+    }
+  }
+}

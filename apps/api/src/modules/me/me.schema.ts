@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CHAINS } from "@zora-wealth/shared";
+import { CHAINS } from "@astra-wealth/shared";
 
 const ethAddress = z
   .string()

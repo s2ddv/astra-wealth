@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type { NewsArticleDto, NewsPageDto } from "@zora-wealth/shared";
+import type { NewsArticleDto, NewsPageDto } from "@astra-wealth/shared";
 export type NewsCategoryFilter = NewsArticleDto["category"] | "all";
 export type NewsLanguageFilter = NewsArticleDto["language"] | "all";
 

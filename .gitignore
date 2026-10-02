@@ -14,3 +14,6 @@ packages/database/src/generated
 
 # Rust build artifacts
 /apps/api-rust/target/
+
+# Turborepo cache
+.turbo

@@ -1,16 +1,16 @@
 {
-  "name": "@zora-wealth/web",
+  "name": "@astra-wealth/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@zora-wealth/shared": "workspace:*",
+    "@astra-wealth/shared": "workspace:*",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "@tanstack/react-query": "^5.101.2",

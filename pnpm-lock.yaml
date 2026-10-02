@@ -23,9 +23,19 @@ importers:
       lucide-react:
         specifier: ^1.24.0
         version: 1.33.0(react@19.2.8)
+    devDependencies:
+      turbo:
+        specifier: ^2.11.5
+        version: 2.11.5
 
   apps/api:
     dependencies:
+      '@astra-wealth/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@astra-wealth/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@fastify/cors':
         specifier: ^11.1.0
         version: 11.3.0
@@ -35,12 +45,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.110.7
         version: 2.112.3
-      '@zora-wealth/database':
-        specifier: workspace:*
-        version: link:../../packages/database
-      '@zora-wealth/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       fastify:
         specifier: ^5.9.0
         version: 5.12.1
@@ -69,6 +73,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@astra-wealth/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@supabase/ssr':
         specifier: ^0.12.3
         version: 0.12.4(@supabase/supabase-js@2.112.3)
@@ -78,9 +85,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.4(react@19.2.8)
-      '@zora-wealth/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       geist:
         specifier: ^1.7.2
         version: 1.7.2(next@16.3.1(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
@@ -711,6 +715,36 @@ packages:
     resolution: {integrity: sha512-yRg2pfOCxIs4ZJW3XYYHU/WgtD04FHSnfHlpRT7h7pR77hwkdRG4wxbKe4aq6P0RvXUTBSQpQeadS1SUYUe+KA==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@turbo/darwin-64@2.11.5':
+    resolution: {integrity: sha512-KdY4y7BBjIisl+jAkb3FFaRjClGqHyaeHCcVcCT8LBzFFwUu6thgfxyRZAx0uL4KoxLmH+iOan8UhVf/aDDcaA==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@turbo/darwin-arm64@2.11.5':
+    resolution: {integrity: sha512-ToZDGi2u410+TfRtC/O1/LpujGgvNJoRBZnwVXob7oO0+3OSlwIO3zofXKUvwQvlba7a8ZXPyCZwufjAXd7f0w==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@turbo/linux-64@2.11.5':
+    resolution: {integrity: sha512-Ub2d/nAbdWLaSytcEaPp1wm/YuIvHEIqNrCRMI/UgOGyFdOhgxm8VyWPAJilQWRYxYVrqEUoy2K5S5K8SG50rA==}
+    cpu: [x64]
+    os: [android, linux]
+
+  '@turbo/linux-arm64@2.11.5':
+    resolution: {integrity: sha512-JQjmGxp724Wuft9FAxPMtmBur1CEdUyxJ+FVoIvKkgj63rXHl9PYCWrsU2tMjVi609XTQ3M8vZD9Yc9qVAVYrw==}
+    cpu: [arm64]
+    os: [android, linux]
+
+  '@turbo/windows-64@2.11.5':
+    resolution: {integrity: sha512-AFkbPmXNd8XgCi/66YEHR2bVl3gtusXyDihTIVEPAuSB+7ulLmJePvz1unWPVKLHdbCTTIdKq2mpJ1B1e3lJXw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@turbo/windows-arm64@2.11.5':
+    resolution: {integrity: sha512-52ziXYP3snGOxjv19xA3WL1WDKv9Q6uDAa/7EKIR5j4hocMlYURkrOHbJ2ZZI+VfPU5MwKpcGeRfHxHJu7Y/Pw==}
+    cpu: [arm64]
+    os: [win32]
 
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
@@ -1487,6 +1521,10 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
+  turbo@2.11.5:
+    resolution: {integrity: sha512-qLXheqz3TUvJpHIV6MUBwkNkvwKxMVG/QsimyiKT9DfNWPHJ294G/i5nDaH+fbHJt3UH7orubNNxAqYkbUNGAQ==}
+    hasBin: true
+
   type-is@2.1.0:
     resolution: {integrity: sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA==}
     engines: {node: '>= 18'}
@@ -1937,6 +1975,24 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.101.4
       react: 19.2.8
+
+  '@turbo/darwin-64@2.11.5':
+    optional: true
+
+  '@turbo/darwin-arm64@2.11.5':
+    optional: true
+
+  '@turbo/linux-64@2.11.5':
+    optional: true
+
+  '@turbo/linux-arm64@2.11.5':
+    optional: true
+
+  '@turbo/windows-64@2.11.5':
+    optional: true
+
+  '@turbo/windows-arm64@2.11.5':
+    optional: true
 
   '@types/node@24.13.3':
     dependencies:
@@ -2740,6 +2796,15 @@ snapshots:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+
+  turbo@2.11.5:
+    optionalDependencies:
+      '@turbo/darwin-64': 2.11.5
+      '@turbo/darwin-arm64': 2.11.5
+      '@turbo/linux-64': 2.11.5
+      '@turbo/linux-arm64': 2.11.5
+      '@turbo/windows-64': 2.11.5
+      '@turbo/windows-arm64': 2.11.5
 
   type-is@2.1.0:
     dependencies:

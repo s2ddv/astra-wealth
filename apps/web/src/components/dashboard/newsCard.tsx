@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { NewsArticleDto } from "@zora-wealth/shared";
+import type { NewsArticleDto } from "@astra-wealth/shared";
 
 const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
 function relativeTime(date: string, now: number) {
