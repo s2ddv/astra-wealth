@@ -197,7 +197,7 @@ Se `target/` estiver read-only, usar um `CARGO_TARGET_DIR` temporário e registr
 
 1. **Backend entregue:** API persistente de contas, holdings e contribuições; conexão da interface permanece em tarefa separada.
 2. **Definido e implementado:** vínculo exclusivo com carteira do mesmo usuário, holdings separados de wallet-assets e aportes exclusivamente explícitos.
-3. Migrar watchlists para Rust preservando o contrato existente.
+3. **Backend entregue:** watchlists no Rust com as mesmas tabelas, rotas e DTOs do Fastify; ver `docs/06-watchlists-rust.md`.
 4. Migrar wallet-assets e sincronização on-chain com evidência real do provedor.
 5. Implementar snapshots e cálculo persistente do portfolio.
 6. Só depois avançar para exchanges, gráficos avançados e tempo real.
