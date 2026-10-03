@@ -53,4 +53,4 @@ Referências lidas em `/home/samuel-barbosa/.agents/skills/apple-design-skill/re
 
 ## Limites
 
-Login real, emissão de cookies e conclusão do OAuth com Google não foram validados com uma conta. O callback segue a [documentação de Google OAuth do Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google); configuração do provedor e URLs autorizadas continuam necessárias. A tela de cadastro mantém seu desenho anterior. Não foi realizado teste manual com leitor de tela.
+Login real, emissão de cookies e conclusão do OAuth com Google não foram validados com uma conta. O callback segue a [documentação de Google OAuth do Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google); configuração do provedor e URLs autorizadas continuam necessárias. Não foi realizado teste manual com leitor de tela.

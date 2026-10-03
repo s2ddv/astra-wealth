@@ -21,15 +21,4 @@ export function getSignInError(code?: string): string {
   }
 }
 
-export function getSignUpError(code?: string): string {
-  switch (code) {
-    case 'user_already_exists':
-    case 'email_exists': return 'Este e-mail já está cadastrado. Entre na sua conta para continuar.'
-    case 'weak_password': return 'Escolha uma senha mais forte, com letras, números e símbolos.'
-    case 'email_address_invalid': return 'Informe um e-mail válido para continuar.'
-    case 'signup_disabled': return 'O cadastro está indisponível no momento. Tente novamente mais tarde.'
-    case 'over_request_rate_limit':
-    case 'over_email_send_rate_limit': return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
-    default: return 'Não foi possível criar sua conta. Tente novamente em instantes.'
-  }
-}
+

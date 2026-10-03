@@ -76,7 +76,4 @@
   .labelRow { flex-wrap: wrap; }
 }
 
-.hint { margin: 0; color: var(--auth-muted); font-size: .875rem; line-height: 1.5; }
-.confirmation { color: var(--auth-muted); line-height: 1.6; overflow-wrap: anywhere; }
-.confirmationTitle { margin: 0 0 1rem; color: var(--auth-text); font-size: 1.25rem; font-weight: 600; }
-.confirmation strong { color: var(--auth-text); }
+
