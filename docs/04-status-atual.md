@@ -1,6 +1,6 @@
 # Astra Wealth — Status Atual e Referência Operacional
 
-> Documento de referência para o trabalho no repositório. Atualizado em 1 de outubro de 2026.
+> Documento de referência para o trabalho no repositório. Atualizado em 3 de outubro de 2026.
 >
 > Este arquivo complementa o roadmap histórico e deve ser consultado antes de iniciar novas tarefas. Ele descreve o estado verificado do checkout atual, não apenas a intenção futura do produto.
 
@@ -8,8 +8,8 @@
 
 - Repositório local: `/home/samuel-barbosa/Documentos/astra-wealth`.
 - Branch verificada: `main`.
-- Estado na última auditoria: `main` estava 8 commits à frente de `origin/main`.
-- O caminho antigo `zora-wealth` não é o checkout atual deste ambiente.
+- Estado nesta auditoria: `main` está 1 commit à frente de `origin/main` (`487e8f2`); há alterações locais ainda não commitadas em Rust, Fastify, frontend, Prisma e configuração.
+- O caminho antigo `zora-wealth` é um link simbólico para este checkout Astra.
 - O produto e os pacotes usam a marca Astra Wealth; referências históricas a Zora podem permanecer em commits e migrações antigas.
 
 Qualquer tarefa deve preservar alterações locais não relacionadas e confirmar o status do Git antes de editar arquivos.
@@ -56,7 +56,7 @@ O backend Rust roda por padrão na porta `3334`; o Fastify legado roda na porta 
   - enums de classe de ativo, origem, moeda e status.
 - As migrations históricas não representam sozinhas todo o schema atual; o Prisma continua sendo a fonte de verdade.
 
-### Carteiras — Rust parcialmente migrado
+### Carteiras — CRUD migrado; acompanhamento on-chain em desenvolvimento local
 
 Disponível no Rust:
 
@@ -71,8 +71,8 @@ Disponível no Rust:
 
 Limites atuais:
 
-- O Rust ainda não consulta saldos on-chain nessa etapa.
-- A sincronização e o cliente Alchemy permanecem no Fastify legado.
+- O checkout local agora contém rotas Rust `GET /v1/me/wallets/:id/assets` e `POST /v1/me/wallets/:id/sync`, com implementação Alchemy, preços CoinGecko, cache Redis e persistência de `wallet_assets`. Essas alterações ainda não foram commitadas; não há nesta auditoria comprovação de consulta com chave real do provedor.
+- O Fastify legado continua presente para compatibilidade durante a migração.
 - A migração dos demais domínios ainda não foi concluída.
 
 ### Mercados e ícones — implementado no Rust
@@ -126,11 +126,15 @@ Limites importantes:
 - Rust agora oferece `/v1/accounts` e rotas de holdings/contribuições com PostgreSQL, isolamento por usuário e decimais em strings; contrato em `docs/05-api-contas-persistentes.md`.
 - A próxima implementação desse domínio deve substituir os mocks por API sem misturar a lógica de apresentação com persistência.
 
-### Watchlists, portfolio e exchanges — ainda não migrados para Rust
+### Watchlists — API Rust migrada; cliente ainda pendente
+
+- As rotas persistentes de watchlists foram entregues no commit `ba12581`; contrato em `docs/06-watchlists-rust.md`.
+- A troca do cliente do frontend para essas rotas ainda precisa ser validada por domínio.
+
+### Portfolio e exchanges — ainda não migrados para Rust
 
 O Fastify legado possui partes de:
 
-- watchlists;
 - snapshots de portfólio;
 - conexões de exchanges;
 - serviços de carteira.
@@ -146,7 +150,7 @@ Esses domínios ainda não devem ser considerados migrados para Rust. A ordem de
 
 ## 4. O que ainda é mock, demonstração ou não entregue
 
-- O fluxo completo de acompanhamento on-chain ainda não está concluído no Rust.
+- O acompanhamento on-chain no Rust está implementado somente no checkout local e ainda requer validação com provedor real e integração da interface.
 - A página de contas/aportes ainda não persiste dados.
 - Gráficos avançados com Lightweight Charts ainda não foram confirmados como integrados.
 - Não há WebSocket nativo implementado; o frontend usa polling.
@@ -198,7 +202,7 @@ Se `target/` estiver read-only, usar um `CARGO_TARGET_DIR` temporário e registr
 1. **Backend entregue:** API persistente de contas, holdings e contribuições; conexão da interface permanece em tarefa separada.
 2. **Definido e implementado:** vínculo exclusivo com carteira do mesmo usuário, holdings separados de wallet-assets e aportes exclusivamente explícitos.
 3. **Backend entregue:** watchlists no Rust com as mesmas tabelas, rotas e DTOs do Fastify; ver `docs/06-watchlists-rust.md`.
-4. Migrar wallet-assets e sincronização on-chain com evidência real do provedor.
+4. **Próximo passo:** validar as alterações locais de wallet-assets e sincronização on-chain no Rust, executar um teste com chave Alchemy real em ambiente controlado e então consolidar um commit próprio. Depois, conectar a interface ao contrato Rust por domínio.
 5. Implementar snapshots e cálculo persistente do portfolio.
 6. Só depois avançar para exchanges, gráficos avançados e tempo real.
 
