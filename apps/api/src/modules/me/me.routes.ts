@@ -68,7 +68,15 @@ export default async function meRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: "Invalid wallet id" });
       }
 
-      const removed = await walletsService.remove(params.data.id, userId);
+      let removed: boolean;
+      try {
+        removed = await walletsService.remove(params.data.id, userId);
+      } catch (error) {
+        if (error && typeof error === "object" && "code" in error && error.code === "WALLET_LINKED_TO_ACCOUNT") {
+          return reply.status(409).send({ code: error.code, error: "Remove the linked financial account before deleting this wallet" });
+        }
+        throw error;
+      }
       if (!removed) {
         return reply.status(404).send({ error: "Wallet not found" });
       }

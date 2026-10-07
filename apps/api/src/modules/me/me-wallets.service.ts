@@ -54,7 +54,9 @@ export class MeWalletsService {
     const balance = summary.alchemy?.nativeBalance ?? summary.moralis?.nativeBalance;
 
     if (balance) {
-      const ethAmount = (Number(balance) / 1e18).toString();
+      const wei = BigInt(balance);
+      const fraction = (wei % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+      const ethAmount = `${wei / 10n ** 18n}${fraction ? `.${fraction}` : ""}`;
       await this.walletAssetRepo.upsert(walletId, "ETH", ethAmount, {
         isNative: true,
       });

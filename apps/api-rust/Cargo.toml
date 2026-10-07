@@ -19,7 +19,7 @@ deadpool-redis = "0.23.1"
 jsonwebtoken = { version = "11.1.0", features = ["rust_crypto"] }
 garde = { version = "0.23.0", features = ["derive", "email", "regex"] }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
+serde_json = { version = "1.0.151", features = ["arbitrary_precision"] }
 ts-rs = "12.0.1"
 thiserror = "2.0.21"
 anyhow = "1.0.104"
@@ -40,3 +40,6 @@ bitcoin = { version = "0.32.102", default-features = false, features = ["std"] }
 base64 = "0.22.1"
 
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+
+bigdecimal = "0.4"
+num-bigint = "0.4"

@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma } from "@astra-wealth/database";
+import type { PrismaClient } from "@astra-wealth/database";
 
 export class WalletAssetRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -20,12 +20,24 @@ export class WalletAssetRepository {
       name?: string | null;
     },
   ) {
-    return this.db.walletAsset.upsert({
+    const assetKey = options?.isNative
+      ? "native"
+      : options?.contractAddress?.toLowerCase();
+    if (!assetKey) throw new Error("Token assets require a contract address");
+    return this.db.$transaction(async (tx) => {
+      // Match the Rust sync lock and mark legacy writes as incomplete.
+      await tx.$queryRaw`SELECT id FROM wallets WHERE id = ${walletId} FOR UPDATE`;
+      await tx.wallet.update({
+        where: { id: walletId },
+        data: { lastSyncComplete: false, lastValuationComplete: false },
+      });
+      return tx.walletAsset.upsert({
       where: {
-        walletId_symbol: { walletId, symbol },
+        walletId_assetKey: { walletId, assetKey },
       },
       create: {
         walletId,
+        assetKey,
         symbol,
         amount,
         contractAddress: options?.contractAddress ?? null,
@@ -38,6 +50,7 @@ export class WalletAssetRepository {
         usdValue: options?.usdValue ?? null,
         name: options?.name ?? null,
       },
+      });
     });
   }
 

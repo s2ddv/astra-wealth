@@ -75,6 +75,12 @@ impl NewWallet {
     pub fn validated(mut self) -> Result<Self, garde::Report> {
         self.nickname = self.nickname.map(|name| trim_nickname(&name).to_owned());
         garde::Validate::validate(&self)?;
+        if matches!(
+            self.chain,
+            Chain::Ethereum | Chain::Polygon | Chain::Arbitrum | Chain::Base
+        ) {
+            self.address.make_ascii_lowercase();
+        }
         Ok(self)
     }
 }

@@ -10,7 +10,12 @@ export class WalletRepository {
     nickname?: string | null;
   }) {
     return this.db.wallet.create({
-      data,
+      data: {
+        ...data,
+        address: ["ETHEREUM", "POLYGON", "ARBITRUM", "BASE"].includes(data.chain)
+          ? data.address.toLowerCase()
+          : data.address,
+      },
       include: { assets: true },
     });
   }
@@ -45,8 +50,17 @@ export class WalletRepository {
   }
 
   delete(id: string, userId: string) {
-    return this.db.wallet.deleteMany({
-      where: { id, userId },
+    return this.db.$transaction(async (tx) => {
+      const owned = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM wallets WHERE id = ${id} AND "userId" = ${userId} FOR UPDATE`;
+      if (!owned.length) return { count: 0 };
+      const linked = await tx.financialAccount.findUnique({ where: { walletId: id } });
+      if (linked) {
+        throw Object.assign(new Error("Wallet is linked to a financial account"), {
+          code: "WALLET_LINKED_TO_ACCOUNT",
+        });
+      }
+      return tx.wallet.deleteMany({ where: { id, userId } });
     });
   }
 }

@@ -232,3 +232,163 @@ async fn rejects_invalid_payloads_before_repository_calls() {
         );
     }
 }
+
+#[tokio::test]
+async fn tracking_error_http_statuses_are_stable_and_sanitized() {
+    use application::tracking::TrackingError;
+    use astra_api::tracking::TrackingHttpError;
+    use axum::response::IntoResponse;
+    for (error, status, code) in [
+        (TrackingError::NotFound, 404, "WALLET_NOT_FOUND"),
+        (TrackingError::ChainNotSupported, 422, "CHAIN_NOT_SUPPORTED"),
+        (
+            TrackingError::ProviderUnavailable,
+            502,
+            "PROVIDER_UNAVAILABLE",
+        ),
+        (TrackingError::RateLimited, 429, "RATE_LIMITED"),
+        (
+            TrackingError::StorageUnavailable,
+            503,
+            "TRACKING_UNAVAILABLE",
+        ),
+    ] {
+        let response = TrackingHttpError(error).into_response();
+        assert_eq!(response.status().as_u16(), status);
+        if status == 429 {
+            assert_eq!(response.headers()["retry-after"], "15");
+        }
+        let bytes = to_bytes(response.into_body(), 1000).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["code"], code);
+    }
+}
+
+mod tracking_routes {
+    use super::*;
+    use application::tracking::*;
+    use std::collections::HashMap;
+    struct ChainProvider;
+    impl OnChainProvider for ChainProvider {
+        fn native_balance<'a>(&'a self, _: Chain, _: &'a str) -> TrackingFuture<'a, String> {
+            Box::pin(async { Ok("0xde0b6b3a7640000".into()) })
+        }
+        fn token_balances<'a>(&'a self, _: Chain, _: &'a str) -> TrackingFuture<'a, TokenBalances> {
+            Box::pin(async {
+                Ok(TokenBalances {
+                    tokens: vec![],
+                    complete: true,
+                })
+            })
+        }
+        fn token_metadata<'a>(
+            &'a self,
+            _: Chain,
+            _: &'a str,
+        ) -> TrackingFuture<'a, Option<TokenMetadata>> {
+            unreachable!()
+        }
+    }
+    struct Prices;
+    impl PriceProvider for Prices {
+        fn native_price(&self, _: Chain) -> TrackingFuture<'_, Option<String>> {
+            Box::pin(async { Ok(Some("2000.5".into())) })
+        }
+        fn token_prices<'a>(
+            &'a self,
+            _: Chain,
+            _: &'a [String],
+        ) -> TrackingFuture<'a, HashMap<String, String>> {
+            Box::pin(async { Ok(HashMap::new()) })
+        }
+    }
+    struct Repo;
+    impl TrackingRepository for Repo {
+        fn save<'a>(
+            &'a self,
+            user: &'a str,
+            w: &'a TrackedWallet,
+            _: &'a [String],
+            complete: bool,
+        ) -> TrackingFuture<'a, ()> {
+            Box::pin(async move {
+                assert_eq!(user, "local-owner");
+                assert_eq!(w.wallet_id, "owned");
+                assert!(complete);
+                Ok(())
+            })
+        }
+    }
+    struct Cache;
+    impl TrackingCache for Cache {
+        fn get<'a>(&'a self, _: &'a str) -> TrackingFuture<'a, Option<TrackedWallet>> {
+            Box::pin(async { Ok(None) })
+        }
+        fn put<'a>(&'a self, _: &'a str, _: &'a TrackedWallet) -> TrackingFuture<'a, ()> {
+            Box::pin(async { Ok(()) })
+        }
+        fn invalidate<'a>(&'a self, _: &'a str) -> TrackingFuture<'a, ()> {
+            Box::pin(async { Ok(()) })
+        }
+        fn acquire<'a>(&'a self, _: &'a str) -> TrackingFuture<'a, Option<String>> {
+            Box::pin(async { Ok(Some("lock".into())) })
+        }
+        fn release<'a>(&'a self, _: &'a str, _: &'a str) -> TrackingFuture<'a, ()> {
+            Box::pin(async { Ok(()) })
+        }
+        fn allow_sync<'a>(&'a self, _: &'a str) -> TrackingFuture<'a, bool> {
+            Box::pin(async { Ok(true) })
+        }
+    }
+    #[tokio::test]
+    async fn assets_and_sync_use_auth_and_return_the_tracking_contract() {
+        let router = astra_api::tracking::router(
+            AuthState {
+                users: UserService::new(Arc::new(Users)),
+                verifier: None,
+                production: false,
+                dev_user_id: None,
+            },
+            WalletTrackingService::new(
+                Arc::new(Wallets),
+                Arc::new(ChainProvider),
+                Arc::new(Prices),
+                Arc::new(Repo),
+                Arc::new(Cache),
+            ),
+        );
+        for (method, path, auth, status) in [
+            ("GET", "/v1/me/wallets/owned/assets", false, 401),
+            ("GET", "/v1/me/wallets/foreign/assets", true, 404),
+            ("POST", "/v1/me/wallets/foreign/sync", true, 404),
+            ("GET", "/v1/me/wallets/owned/assets", true, 200),
+            ("POST", "/v1/me/wallets/owned/sync", true, 200),
+        ] {
+            let mut request = Request::builder().method(method).uri(path);
+            if auth {
+                request = request.header("x-user-id", "local-owner");
+            }
+            let response = router
+                .clone()
+                .oneshot(request.body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status().as_u16(), status);
+            let bytes = to_bytes(response.into_body(), 10000).await.unwrap();
+            let body: Value = serde_json::from_slice(&bytes).unwrap();
+            if status == 200 {
+                assert_eq!(body.as_object().unwrap().len(), 8);
+                assert_eq!(body["walletId"], "owned");
+                assert_eq!(body["chain"], "ETHEREUM");
+                assert_eq!(body["totalUsd"], "2000.5");
+                assert_eq!(body["assets"][0]["amount"], "1");
+                assert_eq!(body["assets"][0]["contractAddress"], Value::Null);
+                assert_eq!(body["assets"][0].as_object().unwrap().len(), 7);
+                assert!(
+                    chrono::DateTime::parse_from_rfc3339(body["updatedAt"].as_str().unwrap())
+                        .is_ok()
+                );
+            }
+        }
+    }
+}

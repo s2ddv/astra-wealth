@@ -38,7 +38,7 @@ async fn wallet_ownership_conflicts_and_exact_asset_amounts() {
         0
     );
     assert_eq!(repo.delete(&wallet.id, &other).await.unwrap(), 0);
-    sqlx::query(r#"INSERT INTO wallet_assets (id,symbol,amount,"walletId","updatedAt") VALUES ($1,'ETH',99999999999999999999.123456789123456789,$2,now())"#)
+    sqlx::query(r#"INSERT INTO wallet_assets (id,"assetKey",symbol,amount,"walletId","updatedAt") VALUES ($1,'native','ETH',99999999999999999999.123456789123456789,$2,now())"#)
         .bind(uuid::Uuid::new_v4().to_string()).bind(&wallet.id).execute(&pool).await.unwrap();
     let listed = repo.find_by_user_id(&owner).await.unwrap();
     assert_eq!(listed.len(), 1);

@@ -63,6 +63,8 @@ model Wallet {
   assets WalletAsset[]
 
   lastSyncedAt DateTime?
+  lastSyncComplete Boolean @default(false)
+  lastValuationComplete Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -80,15 +82,17 @@ model WalletAsset {
   contractAddress String?
   isNative        Boolean @default(false)
 
-  amount   Decimal  @db.Decimal(38, 18)
-  usdValue Decimal? @db.Decimal(18, 2)
+  assetKey String
+  decimals Int?
+  amount   Decimal  @db.Decimal(400, 255)
+  usdValue Decimal? @db.Decimal(600, 355)
 
   walletId String
   wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   updatedAt DateTime @updatedAt
 
-  @@unique([walletId, symbol])
+  @@unique([walletId, assetKey])
   @@index([walletId])
   @@map("wallet_assets")
 }

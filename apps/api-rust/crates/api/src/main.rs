@@ -70,13 +70,22 @@ async fn main() -> anyhow::Result<()> {
     let watchlists_router = astra_api::watchlist::router(astra_api::watchlist::WatchlistState {
         auth: auth.clone(),
         watchlists: application::watchlist::WatchlistService::new(Arc::new(
-            infrastructure::watchlist::SqlxWatchlistRepository::new(pool),
+            infrastructure::watchlist::SqlxWatchlistRepository::new(pool.clone()),
         )),
     });
+    let tracking_router = astra_api::tracking::router(
+        auth.clone(),
+        infrastructure::tracking::tracking_service(
+            pool,
+            infrastructure::redis_pool(&redis_url)?,
+            infrastructure::tracking::TrackingConfig::from_env(),
+        )?,
+    );
     let news_router = astra_api::news::router(auth.clone(), news);
     let app = router(HealthState { dependencies }, auth, wallets)
         .merge(accounts_router)
         .merge(watchlists_router)
+        .merge(tracking_router)
         .merge(news_router)
         .merge(astra_api::market::router(markets))
         .layer(
