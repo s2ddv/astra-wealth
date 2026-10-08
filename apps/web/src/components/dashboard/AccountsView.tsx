@@ -16,8 +16,6 @@ import {
   type FinancialAccountDTO,
 } from "@astra-wealth/shared/accounts";
 import {
-  mockCryptoPositions,
-  mockHoldings,
   summarizeAccounts,
 } from "@/mocks/accounts";
 import { useAccounts } from "./AccountsProvider";
@@ -82,14 +80,22 @@ function AddAccount({ onClose }: { onClose: () => void }) {
   const { addAccount } = useAccounts();
   const router = useRouter();
   const [manual, setManual] = useState(false);
-  function submit(event: FormEvent<HTMLFormElement>) {
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     if (!name) return;
-    const id = addAccount(name, String(form.get("institution") ?? ""));
-    onClose();
-    router.push(`/dashboard/accounts/${id}`);
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const id = await addAccount(name, String(form.get("institution") ?? ""));
+      onClose();
+      router.push(`/dashboard/accounts/${id}`);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Não foi possível criar a conta."); }
+    finally { setSaving(false); }
   }
   return (
     <Modal title="Adicionar conta" onClose={onClose}>
@@ -137,10 +143,10 @@ function AddAccount({ onClose }: { onClose: () => void }) {
             <input name="institution" maxLength={100} className={INPUT} />
           </label>
           <p className="text-body-sm text-on-surface-variant">
-            Moeda base: BRL. A conta começa sem ativos. Os dados ficam apenas
-            nesta sessão.
+            Moeda base: BRL. A conta começa sem ativos e fica salva na sua conta.
           </p>
-          <button className={BUTTON}>Criar conta manual</button>
+          {error && <p role="alert" className="text-error">{error}</p>}
+          <button disabled={saving} className={BUTTON}>{saving ? "Salvando…" : "Criar conta manual"}</button>
         </form>
       )}
     </Modal>
@@ -155,10 +161,11 @@ function ContributionForm({
 }) {
   const { accounts, addContribution } = useAccounts();
   const [currency, setCurrency] = useState("BRL");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const now = new Date();
   const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const date = new Date(`${form.get("date")}T00:00:00`);
@@ -182,8 +189,11 @@ function ContributionForm({
       setError(result.error.issues.map((issue) => issue.message).join(" "));
       return;
     }
+    if (saving) return;
+    setSaving(true);
+    setError("");
     try {
-      addContribution(result.data);
+      await addContribution(result.data);
       onClose();
     } catch (caught) {
       setError(
@@ -191,7 +201,7 @@ function ContributionForm({
           ? caught.message
           : "Não foi possível registrar o aporte.",
       );
-    }
+    } finally { setSaving(false); }
   }
   return (
     <Modal title="Registrar aporte" onClose={onClose}>
@@ -277,14 +287,14 @@ function ContributionForm({
             {error}
           </p>
         )}
-        <button className={BUTTON}>Registrar nesta sessão</button>
+        <button disabled={saving} className={BUTTON}>{saving ? "Salvando…" : "Registrar aporte"}</button>
       </form>
     </Modal>
   );
 }
 function AccountDetails({ account }: { account: FinancialAccountDTO }) {
-  const { contributions } = useAccounts();
-  const positions = [...mockHoldings, ...mockCryptoPositions].filter(
+  const { contributions, holdings, unavailableValues } = useAccounts();
+  const positions = holdings.filter(
     (position) => position.accountId === account.id,
   );
   const history = contributions
@@ -292,7 +302,7 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   return (
     <>
-      <ContributionsKpis summary={account} />
+      {unavailableValues.includes(account.id) ? <p role="status">Avaliação em BRL indisponível. Consulte os saldos em Carteiras; a conversão para BRL ainda não está disponível.</p> : <ContributionsKpis summary={account} />}
       <section className={PANEL}>
         <h2 className="mb-4 text-title-md font-semibold">Ativos da conta</h2>
         {positions.length ? (
@@ -302,7 +312,7 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
                 <tr>
                   <th className="p-3">Ativo</th>
                   <th className="p-3">Quantidade</th>
-                  <th className="p-3 text-right">Valor atual (BRL)</th>
+                  <th className="p-3 text-right">Valor atual ({account.baseCurrency})</th>
                 </tr>
               </thead>
               <tbody>
@@ -317,7 +327,7 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
                     </td>
                     <td className="p-3 tabular-nums">{position.quantity}</td>
                     <td className="p-3 text-right tabular-nums">
-                      {money(position.currentValue)}
+                      {money(position.currentValue, account.baseCurrency)}
                     </td>
                   </tr>
                 ))}
@@ -392,7 +402,7 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
   );
 }
 export function AccountsView({ selectedId }: { selectedId?: string }) {
-  const { accounts, contributions } = useAccounts();
+  const { accounts, contributions, loading, error, refresh, unavailableValues } = useAccounts();
   const [modal, setModal] = useState<"account" | "contribution" | null>(null);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -415,12 +425,14 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
         : accounts,
     [accounts, normalizedQuery],
   );
+  if (loading) return <p role="status">Carregando contas…</p>;
+  if (error) return <div role="alert">{error.message} <button onClick={refresh}>Tentar novamente</button></div>;
   if (selectedId && !selected)
     return (
       <section className={PANEL}>
-        <h1 className="text-headline-md">Conta não encontrada nesta sessão</h1>
+        <h1 className="text-headline-md">Conta não encontrada</h1>
         <p className="my-4">
-          Os lançamentos de demonstração são descartados ao recarregar a página.
+          A conta não existe ou não está disponível para seu usuário.
         </p>
         <Link href="/dashboard/accounts" className="text-primary">
           Voltar para contas
@@ -468,16 +480,13 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
         role="note"
         className="rounded-2xl bg-primary/10 px-4 py-3 text-body-sm text-primary"
       >
-        Demonstração com dados fictícios. Alterações ficam apenas nesta sessão e
-        são perdidas ao recarregar.
+        Contas e aportes salvos na sua conta. Transferências on-chain não geram aportes automaticamente.
       </p>
       {selected ? (
         <AccountDetails account={selected} />
       ) : (
         <>
-          <ContributionsKpis
-            summary={summarizeAccounts(accounts, contributions)}
-          />
+          {unavailableValues.length ? <p role="status">Consolidação em BRL indisponível: existem contas com saldo on-chain ou outra moeda. Consulte os valores por conta.</p> : <ContributionsKpis summary={summarizeAccounts(accounts, contributions)} />}
           <div className={PANEL}>
             <label
               htmlFor="accounts-search"
@@ -570,7 +579,7 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
                         Valor atual
                       </p>
                       <p className="mt-1 text-2xl font-semibold tabular-nums">
-                        {money(account.currentValue)}
+                        {unavailableValues.includes(account.id) ? "Indisponível em BRL" : money(account.currentValue)}
                       </p>
                       <dl className="mt-4 space-y-2 text-body-sm">
                         <div className="flex flex-wrap justify-between gap-2">
@@ -588,8 +597,7 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
                                   : "text-on-surface-variant"
                             }
                           >
-                            {money(account.result)} ·{" "}
-                            {percent(account.resultPct)}
+                            {unavailableValues.includes(account.id) ? "Indisponível" : `${money(account.result)} · ${percent(account.resultPct)}`}
                           </dd>
                         </div>
                       </dl>

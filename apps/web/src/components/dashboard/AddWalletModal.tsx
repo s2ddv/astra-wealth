@@ -4,7 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { CHAIN_LABELS } from "@/lib/format";
 import type { AddWalletInput, ChainId } from "@/types/dashboard";
 
-const CHAINS = Object.keys(CHAIN_LABELS) as ChainId[];
+const CHAINS: ChainId[] = ["ethereum", "polygon", "arbitrum", "base"];
+
+import { useWalletMutations } from "@/hooks/useWallets";
+import type { WalletChain } from "../../../../../packages/shared/src/generated/rust/WalletDto";
 
 interface AddWalletModalProps {
   open: boolean;
@@ -19,6 +22,7 @@ const EMPTY_FORM: AddWalletInput = {
 
 export function AddWalletModal({ open, onClose }: AddWalletModalProps) {
   const titleId = useId();
+  const { add } = useWalletMutations();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [form, setForm] = useState<AddWalletInput>(EMPTY_FORM);
 
@@ -32,10 +36,13 @@ export function AddWalletModal({ open, onClose }: AddWalletModalProps) {
     }
   }, [open]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Sem persistência nesta fase — o formulário só valida o fluxo de UI.
-    onClose();
+    if (add.isPending) return;
+    try {
+      await add.mutateAsync({ ...form, nickname: form.nickname.trim(), address: form.address.trim(), chain: form.chain.toUpperCase() as WalletChain });
+      onClose();
+    } catch { /* The mutation error remains visible inside the dialog. */ }
   }
 
   return (
@@ -55,7 +62,7 @@ export function AddWalletModal({ open, onClose }: AddWalletModalProps) {
               Adicionar carteira
             </h2>
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              Demonstração: os dados preenchidos não serão salvos.
+              Cadastre um endereço público para acompanhar seus saldos.
             </p>
           </div>
           <button
@@ -122,6 +129,7 @@ export function AddWalletModal({ open, onClose }: AddWalletModalProps) {
             </select>
           </label>
 
+          {add.error && <p role="alert" className="text-error">{add.error.message}</p>}
           <div className="mt-2 flex justify-end gap-3">
             <button
               type="button"
@@ -132,9 +140,10 @@ export function AddWalletModal({ open, onClose }: AddWalletModalProps) {
             </button>
             <button
               type="submit"
+              disabled={add.isPending}
               className="rounded-full bg-primary px-5 py-2 text-body-sm font-medium text-on-primary hover:bg-primary/90"
             >
-              Concluir demonstração
+              {add.isPending ? "Salvando…" : "Adicionar carteira"}
             </button>
           </div>
         </form>

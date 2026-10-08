@@ -10,11 +10,12 @@ import { percent } from "./AccountPresentation";
 import { WalletsSummary } from "./WalletsSummary";
 import { PortfolioAllocation } from "./PortfolioAllocation";
 import styles from "./Overview.module.css";
+import authStyles from "./PortfolioAuthActions.module.css";
 
 export function PortfolioHeader({ userName = mockUserProfile.displayName }: { userName?: string }) {
   const [greeting, setGreeting] = useState("Olá");
   const [currency, setCurrency] = useState<"BRL" | "USD">("BRL");
-  const { accounts, contributions } = useAccounts();
+  const { accounts, contributions, loading, error, unavailableValues } = useAccounts();
   const summary = summarizeAccounts(accounts, contributions);
   const result = Number(summary.result);
   const formatValue = (value: string) => new Intl.NumberFormat("pt-BR", {
@@ -31,6 +32,12 @@ export function PortfolioHeader({ userName = mockUserProfile.displayName }: { us
     return () => window.clearInterval(interval);
   }, []);
 
+  if (loading || error || unavailableValues.length) return (
+    <p role={error ? "alert" : "status"} className={styles.muted}>
+      {loading ? "Carregando patrimônio…" : error ? error.message : "Consolidação em BRL indisponível. Consulte os saldos por conta e em Carteiras."}
+    </p>
+  );
+
   return (
     <div className={styles.overview}>
       <header className={styles.heading}>
@@ -39,10 +46,14 @@ export function PortfolioHeader({ userName = mockUserProfile.displayName }: { us
           <h1>{greeting}, {userName}</h1>
           <p className={styles.muted}>Seu patrimônio, com cada conta no lugar.</p>
         </div>
-        <Link href="/dashboard/accounts" className={styles.primaryAction}>
-          <span aria-hidden="true" className="material-symbols-outlined">add</span>
-          Adicionar conta
-        </Link>
+        <nav aria-label="Acesso à conta" className={authStyles.actions}>
+          <Link href="/signin" className={`${authStyles.action} ${authStyles.login}`}>
+            Login
+          </Link>
+          <Link href="/signup" className={`${authStyles.action} ${authStyles.signup}`}>
+            Sign up
+          </Link>
+        </nav>
       </header>
 
       <p className={styles.demoNote}><span className={styles.demoBadge}>Demonstração</span> Dados fictícios para explorar sua visão patrimonial.</p>

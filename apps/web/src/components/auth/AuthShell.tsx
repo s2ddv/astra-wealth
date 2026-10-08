@@ -3,7 +3,13 @@ import Link from 'next/link'
 import { AstraLogo } from '@/components/astra-logo'
 import styles from './Auth.module.css'
 
-export function AuthShell({ children }: { children: ReactNode }) {
+type AuthShellProps = {
+  children: ReactNode
+  title?: string
+  subtitle?: string
+}
+
+export function AuthShell({ children, title = 'Entre na Astra', subtitle = 'Seu patrimônio, em um só lugar.' }: AuthShellProps) {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -15,9 +21,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </span>
       </header>
       <main className={styles.main}>
-        <section className={styles.panel} aria-labelledby="signin-title">
-          <h1 id="signin-title" className={styles.title}>Entre na Astra</h1>
-          <p className={styles.subtitle}>Seu patrimônio, em um só lugar.</p>
+        <section className={styles.panel} aria-labelledby="auth-title">
+          <h1 id="auth-title" className={styles.title}>{title}</h1>
+          <p className={styles.subtitle}>{subtitle}</p>
           {children}
         </section>
       </main>

@@ -51,7 +51,7 @@
 .allocationValues strong { font-weight: 500; }
 .allocationValues .muted { min-width: 4ch; text-align: right; }
 .count { display: grid; place-items: center; min-width: 28px; min-height: 28px; padding: 2px 8px; border-radius: 8px; background: #312f38; font-size: .8125rem; }
-.attention { margin-top: 16px; padding: 10px 12px; border-left: 2px solid var(--overview-negative); background: #31252a; border-radius: 0 8px 8px 0; color: var(--overview-negative); font-size: .8125rem; line-height: 1.5; }
+.attention { margin-top: 16px; padding: 10px 12px; border: 1px solid #5f3b40; background: #31252a; border-radius: 8px; color: var(--overview-negative); font-size: .8125rem; line-height: 1.5; }
 .accounts { list-style: none; margin-top: 12px; padding: 0; }
 .accounts li + li { border-top: 1px solid #49454f; }
 .accountLink { display: flex; align-items: center; gap: 12px; padding: 16px 4px; border-radius: 10px; }

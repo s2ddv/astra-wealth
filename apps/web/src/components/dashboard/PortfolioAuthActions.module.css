@@ -1,0 +1,43 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-inline-start: auto;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.login {
+  color: var(--overview-text);
+  border-color: #948f99;
+}
+
+.login:hover { background: var(--overview-surface); }
+.login:active { background: #26252d; }
+.signup { background: var(--overview-accent); color: #3b1f73; }
+.signup:hover { background: #e5ddf6; }
+.signup:active { background: #b9a3e8; }
+
+.action:focus-visible {
+  outline: 2px solid var(--overview-accent);
+  outline-offset: 4px;
+}
+
+@media (max-width: 599px) {
+  .actions { width: 100%; }
+  .action { flex: 1 1 100px; }
+}

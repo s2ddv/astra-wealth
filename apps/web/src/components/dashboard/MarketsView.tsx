@@ -1,30 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useMarkets, useTrendingMarkets, useWatchlistMarkets, type MarketCoinDto } from "@/hooks/useMarkets";
 import { changeToneClass, formatPercent } from "@/lib/format";
-import { defaultWatchlist, mockMarketAssets } from "@/mocks/markets";
+import { mockMarketAssets } from "@/mocks/markets";
 import { ASSET_CLASS_LABELS, formatMarketPrice, type AssetClass, type MarketInstrument } from "@/types/markets";
 import { AssetBadge, MarketTable } from "./MarketTable";
 import { MarketDetails } from "./MarketDetails";
 import { WatchlistButton } from "./WatchlistButton";
 
-const STORAGE_KEY = "astra.markets.watchlist.v1";
-// Compatibility: preserve existing browser watchlists during the brand migration.
-const LEGACY_STORAGE_KEY = "zora.markets.watchlist.v1";
+import { usePersistentWatchlist } from "@/hooks/usePersistentWatchlist";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary";
 const classes = Object.entries(ASSET_CLASS_LABELS) as [AssetClass, string][];
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 const demos = mockMarketAssets.filter((asset) => asset.assetClass !== "crypto");
-const legacyIds: Record<string, string> = { "crypto:btc": "crypto:bitcoin", "crypto:eth": "crypto:ethereum", "crypto:sol": "crypto:solana", "crypto:link": "crypto:chainlink", "crypto:usdt": "crypto:tether" };
+
 function instrument(coin: MarketCoinDto): MarketInstrument {
   return { id: `crypto:${coin.id}`, symbol: coin.symbol.toUpperCase(), name: coin.name, assetClass: "crypto", venue: "CoinGecko", currency: "USD", price: coin.currentPrice, change: coin.priceChangePercentage24h, image: coin.image, updatedAt: coin.updatedAt };
 }
 
 export function MarketsView() {
-  const [watchlist, setWatchlist] = useState<string[]>(defaultWatchlist.map((id) => legacyIds[id] ?? id));
-  const [ready, setReady] = useState(false);
-  const [storageError, setStorageError] = useState(false);
+  const persistent = usePersistentWatchlist();
+  const { ids: watchlist, ready } = persistent;
   const [query, setQuery] = useState("");
   const [assetClass, setAssetClass] = useState<AssetClass | "all">("all");
   const [view, setView] = useState<"all" | "watchlist">("all");
@@ -38,21 +35,6 @@ export function MarketsView() {
   const cryptoIds = watchlist.filter((id) => id.startsWith("crypto:")).map((id) => id.slice(7));
   const savedMarket = useWatchlistMarkets(cryptoIds, ready);
 
-  useEffect(() => {
-    try {
-      const current = localStorage.getItem(STORAGE_KEY);
-      const saved = current ?? localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (saved !== null) {
-        const ids: unknown = JSON.parse(saved);
-        if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) throw new Error("Invalid watchlist");
-        const normalized = [...new Set(ids.map((id) => legacyIds[id] ?? id).filter((id) => /^crypto:[a-z0-9][a-z0-9-]{0,99}$/.test(id) || demos.some((asset) => asset.id === id)))].slice(0, 100);
-        setWatchlist(normalized);
-        if (current === null) localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-      }
-    } catch { setStorageError(true); }
-    setReady(true);
-  }, []);
-
   const pageAssets = (market.data?.data ?? []).map(instrument);
   const assets = [...pageAssets, ...demos];
   const watchlistQuotes = (savedMarket.data?.data ?? []).map(instrument);
@@ -63,14 +45,13 @@ export function MarketsView() {
     if (sort !== "default") { if (a.change === null) return b.change === null ? 0 : 1; if (b.change === null) return -1; return sort === "gainers" ? b.change - a.change : a.change - b.change; }
     return 0;
   });
-  function toggle(id: string) {
+  async function toggle(id: string) {
     const exists = watchlist.includes(id);
-    if (!exists && watchlist.length >= 100) { setMessage("Sua watchlist pode acompanhar até 100 ativos. Remova um para adicionar outro."); return; }
-    const next = exists ? watchlist.filter((item) => item !== id) : [...watchlist, id];
-    setWatchlist(next);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setStorageError(false); } catch { setStorageError(true); }
-    const name = [...assets, ...savedAssets].find((asset) => asset.id === id)?.symbol ?? id;
-    setMessage(`${name} ${exists ? "removido da" : "adicionado à"} watchlist.`);
+    try {
+      if (!await persistent.toggle(id)) return;
+      const name = [...assets, ...savedAssets].find((asset) => asset.id === id)?.symbol ?? id;
+      setMessage(`${name} ${exists ? "removido da" : "adicionado à"} watchlist.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar a watchlist."); }
   }
   function explore() { setView("all"); setAssetClass("all"); setQuery(""); searchRef.current?.focus(); }
   const select = (id: string) => setSelected(id.replace(/^crypto:/, ""));
@@ -112,13 +93,14 @@ export function MarketsView() {
         </footer>
       </section>
 
+      {persistent.error && <button onClick={persistent.refresh} className="text-primary">Recarregar watchlist</button>}
       <aside aria-labelledby="watchlist-title" className="rounded-3xl border border-outline-variant/30 bg-surface-container p-5">
         <div className="flex items-center justify-between"><h2 id="watchlist-title" className="text-title-md font-semibold">Minha watchlist</h2><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">{watchlist.length}</span></div>
         <p className="mt-2 text-body-sm text-on-surface-variant">Seus mercados, lado a lado.</p>
         {savedMarket.isError && <p role="status" className="mt-3 text-xs text-error">Não foi possível atualizar sua watchlist. Cotações anteriores podem estar desatualizadas.</p>}
         <div className="mt-5 max-h-[560px] divide-y divide-outline-variant/30 overflow-y-auto">{ready && savedAssets.map((asset) => <div key={asset.id} className="flex items-center gap-2 py-4"><AssetBadge asset={asset} /><div className="min-w-0 flex-1"><p className="truncate text-body-sm font-medium" title={asset.name}>{asset.symbol}</p><p className="mt-1 text-xs text-on-surface-variant">{formatMarketPrice(asset)}{asset.assetClass !== "crypto" && " · Demo"}</p></div><span className={`text-xs tabular-nums ${changeToneClass(asset.change ?? 0)}`}>{asset.change === null ? "—" : formatPercent(asset.change)}</span><WatchlistButton name={asset.name} selected onToggle={() => toggle(asset.id)} /></div>)}{ready && !savedAssets.length && <p className="py-6 text-body-sm text-on-surface-variant">Marque a estrela de qualquer ativo para adicioná-lo aqui.</p>}</div>
         <button type="button" onClick={explore} className={`mt-4 w-full rounded-full border border-primary/40 px-4 py-3 text-body-sm font-medium text-primary hover:bg-primary/10 ${FOCUS}`}>+ Adicionar ativos</button>
-        <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">{storageError ? "Armazenamento indisponível. As escolhas valem apenas nesta visita." : "Salva neste navegador, até 100 ativos. Sem sincronização com sua conta."}</p>
+        <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">{persistent.error ? persistent.error.message : "Salva na lista Markets da sua conta, até 100 ativos."}</p>
       </aside>
     </div>
     <p role="status" className="text-body-sm text-on-surface-variant">{message}</p>
