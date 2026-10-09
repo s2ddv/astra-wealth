@@ -1,39 +1,36 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createPrivateSessionCache } from "@/lib/private-session";
+import { PrivateSessionContext } from "@/lib/private-session-context";
 import { SmoothScroll } from "../components/dashboard/smoothScroll";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const userId = useRef<string | null | undefined>(undefined);
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 30_000, 
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  );
+  const [sessions] = useState(createPrivateSessionCache);
+  const [scope, setScope] = useState(() => sessions.current);
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      setScope(sessions.switchTo(null));
+      return () => sessions.dispose();
+    }
     const { data: { subscription } } = createClient().auth.onAuthStateChange((_event, session) => {
-      const next = session?.user.id ?? null;
-      if (userId.current !== undefined && userId.current !== next) {
-        void queryClient.resetQueries({ queryKey: ["private"] });
-      }
-      userId.current = next;
+      setScope(sessions.switchTo(session?.user.id ?? null));
     });
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
+    return () => {
+      subscription.unsubscribe();
+      sessions.dispose();
+    };
+  }, [sessions]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SmoothScroll>{children}</SmoothScroll>
-    </QueryClientProvider>
+    <SmoothScroll>
+      {/* Remount observers and local state; late callbacks retain the retired client. */}
+      <QueryClientProvider key={scope.generation} client={scope.client}>
+        <PrivateSessionContext.Provider value={scope.fetch}>{children}</PrivateSessionContext.Provider>
+      </QueryClientProvider>
+    </SmoothScroll>
   );
 }

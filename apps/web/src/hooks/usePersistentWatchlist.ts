@@ -1,13 +1,15 @@
 "use client";
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PrivateApiError, privateFetch } from "@/lib/private-api";
+import { PrivateApiError } from "@/lib/private-api";
+import { usePrivateFetch } from "@/lib/private-session-context";
 interface WatchlistItem { id: string; coinId: string }
 interface Watchlist { id: string; name: string; items: WatchlistItem[] }
 const key = ["private", "watchlists"];
 const displayId = (id: string) => id.includes(":") ? id : `crypto:${id}`;
 const storedId = (id: string) => id.startsWith("crypto:") ? id.slice(7) : id;
 export function usePersistentWatchlist() {
+  const privateFetch = usePrivateFetch();
   const client = useQueryClient();
   const busy = useRef(false);
   const query = useQuery({ queryKey: key, queryFn: ({ signal }) => privateFetch<Watchlist[]>("watchlists", { signal }), retry: false });

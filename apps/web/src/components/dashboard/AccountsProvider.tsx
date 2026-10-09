@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { calculateContributionsSummary, createContributionSchema, sumDecimalValues,
   type FinancialAccountDTO, type ContributionDTO, type HoldingDTO, type CreateContributionInput,
 } from "@astra-wealth/shared/accounts";
-import { privateFetch } from "@/lib/private-api";
+import { usePrivateFetch } from "@/lib/private-session-context";
 import type { AccountRecord, AccountDetail } from "@/types/accounts-api";
 
 interface AccountsState {
@@ -20,6 +20,7 @@ interface AccountsState {
 }
 const Context = createContext<AccountsState | null>(null);
 export function AccountsProvider({ children }: { children: ReactNode }) {
+  const privateFetch = usePrivateFetch();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["private", "accounts"], retry: false,
     queryFn: async ({ signal }) => {
