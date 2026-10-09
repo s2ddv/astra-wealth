@@ -126,7 +126,7 @@ async fn request(method: &str, path: &str, body: Value, auth: bool) -> (StatusCo
         auth: AuthState {
             users: UserService::new(Arc::new(Users)),
             verifier: None,
-            production: false,
+            allow_dev_auth: true,
             dev_user_id: auth.then(|| "local-owner".into()),
         },
         watchlists: WatchlistService::new(Arc::new(Lists)),

@@ -76,7 +76,7 @@ fn app(authenticated: bool) -> axum::Router {
         AuthState {
             users: UserService::new(Arc::new(MemoryUsers::default())),
             verifier: None,
-            production: false,
+            allow_dev_auth: true,
             dev_user_id: authenticated.then(|| "demo_user_zora".into()),
         },
         NewsService::new(vec![Arc::new(FixtureProvider)], Arc::new(EmptyCache)),

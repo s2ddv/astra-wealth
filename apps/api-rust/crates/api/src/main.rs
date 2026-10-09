@@ -23,13 +23,17 @@ async fn main() -> anyhow::Result<()> {
     let origin: HeaderValue = env::var("WEB_ORIGIN")
         .unwrap_or_else(|_| "http://localhost:3000".into())
         .parse()?;
-    let production = env::var("NODE_ENV").is_ok_and(|value| value == "production");
-    let setting = |name: &str| env::var(name).ok().filter(|value| !value.is_empty());
+    let allow_dev_auth = astra_api::auth::development_auth_enabled(
+        env::var("NODE_ENV").ok().as_deref(),
+        env::var("ALLOW_DEV_AUTH").ok().as_deref(),
+    );
+    let setting = |name: &str| env::var(name).ok().map(|value| value.trim().to_owned()).filter(|value| !value.is_empty());
     let supabase_url = setting("SUPABASE_URL");
     let service_key = setting("SUPABASE_SERVICE_ROLE_KEY");
     anyhow::ensure!(
-        !production || (supabase_url.is_some() && service_key.is_some()),
-        "Production requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+        (supabase_url.is_some() && service_key.is_some())
+            || (allow_dev_auth && supabase_url.is_none() && service_key.is_none()),
+        "Authentication requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY; local development requires NODE_ENV=development and ALLOW_DEV_AUTH=true"
     );
     let verifier = match (supabase_url, service_key) {
         (Some(url), Some(key)) => Some(Arc::new(infrastructure::auth::SupabaseAuth::new(
@@ -50,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
     let auth = AuthState {
         users,
         verifier,
-        production,
+        allow_dev_auth,
         dev_user_id: setting("DEV_USER_ID"),
     };
     let (markets, _) = infrastructure::market::crypto_market_services(

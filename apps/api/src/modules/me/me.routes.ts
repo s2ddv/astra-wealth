@@ -1,5 +1,4 @@
 import type { FastifyInstance } from "fastify";
-import { UserRepository } from "../../repositories/user.repository.js";
 import { requireUserId } from "../../lib/dev-auth.js";
 import { MeWalletsService } from "./me-wallets.service.js";
 import { MeWatchlistsService } from "./me-watchlists.service.js";
@@ -16,13 +15,12 @@ import {
 } from "./me.schema.js";
 
 export default async function meRoutes(fastify: FastifyInstance) {
-  const userRepo = new UserRepository(fastify.prisma);
   const walletsService = new MeWalletsService(fastify);
   const watchlistsService = new MeWatchlistsService(fastify);
   const portfolioService = new MePortfolioService(fastify);
 
   async function auth(request: Parameters<typeof requireUserId>[0], reply: Parameters<typeof requireUserId>[1]) {
-    return requireUserId(request, reply, userRepo);
+    return requireUserId(request, reply);
   }
 
   // Wallets

@@ -115,7 +115,7 @@ fn app() -> Router {
         auth: AuthState {
             users: UserService::new(Arc::new(Users)),
             verifier: None,
-            production: false,
+            allow_dev_auth: true,
             dev_user_id: None,
         },
         wallets: Arc::new(WalletService::new(Arc::new(Wallets))),
@@ -346,7 +346,7 @@ mod tracking_routes {
             AuthState {
                 users: UserService::new(Arc::new(Users)),
                 verifier: None,
-                production: false,
+                allow_dev_auth: true,
                 dev_user_id: None,
             },
             WalletTrackingService::new(

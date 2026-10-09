@@ -101,7 +101,7 @@ async fn request(
         auth: AuthState {
             users: UserService::new(Arc::new(Users)),
             verifier: None,
-            production: false,
+            allow_dev_auth: true,
             dev_user_id: authenticated.then(|| "local-owner".into()),
         },
         accounts: AccountService::new(Arc::new(Accounts)),

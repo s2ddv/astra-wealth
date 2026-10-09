@@ -53,15 +53,24 @@ async fn health_aliases_preserve_fastify_degraded_contract() {
 }
 
 #[test]
-fn production_requires_supabase_configuration() {
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_astra-api"))
-        .current_dir(std::env::temp_dir())
-        .env_clear()
-        .env("NODE_ENV", "production")
-        .env("DATABASE_URL", "postgres://test:test@127.0.0.1:1/test")
-        .env("REDIS_URL", "redis://127.0.0.1:1")
-        .output()
-        .unwrap();
-    assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("Production requires SUPABASE_URL"));
+fn missing_or_partial_configuration_fails_closed() {
+    for environment in [None, Some("production"), Some("staging"), Some("test"), Some("development")] {
+        for flag in [None, Some("true")] {
+            for configured in ["none", "url-only", "key-only"] {
+                if environment == Some("development") && flag == Some("true") && configured == "none" { continue; }
+                let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_astra-api"));
+                command.current_dir(std::env::temp_dir()).env_clear()
+                    .env("DATABASE_URL", "postgres://test:test@127.0.0.1:1/test")
+                    .env("REDIS_URL", "redis://127.0.0.1:1")
+                    .env("DEV_USER_ID", "synthetic-user");
+                if let Some(value) = environment { command.env("NODE_ENV", value); }
+                if let Some(value) = flag { command.env("ALLOW_DEV_AUTH", value); }
+                if configured == "url-only" { command.env("SUPABASE_URL", "https://auth.test.invalid"); }
+                if configured == "key-only" { command.env("SUPABASE_SERVICE_ROLE_KEY", "synthetic-key"); }
+                let output = command.output().unwrap();
+                assert!(!output.status.success());
+                assert!(String::from_utf8_lossy(&output.stderr).contains("Authentication requires SUPABASE_URL"));
+            }
+        }
+    }
 }

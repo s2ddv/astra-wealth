@@ -56,9 +56,14 @@ desconhecida permite nova consulta no máximo a cada 30s. Requisições expiram 
 Após validar o JWT, a API consulta `/auth/v1/user` antes de sincronizar o e-mail.
 A service-role key é credencial de upstream, nunca segredo de assinatura de JWT
 de usuário. `AuthenticatedUser` preserva os erros 401 do legado. Tokens inválidos
-não recorrem ao usuário demo. Fora de produção, tokens ausentes podem usar
-`DEV_USER_ID`; sem configuração Supabase, `X-User-Id` também funciona.
-**Produção não inicia sem configuração Supabase.**
+não recorrem ao usuário demo, mesmo sem verifier ou com header vazio.
+Nos dois backends, atalhos locais exigem **NODE_ENV=development e ALLOW_DEV_AUTH=true**.
+Somente sem Authorization pode ser usado `DEV_USER_ID`; `X-User-Id` é aceito apenas
+nesse modo explícito e sem configuração Supabase. Com Supabase, esse header não
+substitui a identidade validada. O helper Fastify apenas exige a identidade do plugin.
+Configuração Supabase incompleta impede a inicialização. Ausência total só é aceita
+no modo de desenvolvimento explícito; NODE_ENV ausente, produção, test ou staging
+exigem configuração completa. Os arquivos de exemplo deixam ALLOW_DEV_AUTH desativado.
 
 ## Carteiras
 
