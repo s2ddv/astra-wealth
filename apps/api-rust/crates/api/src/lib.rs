@@ -70,4 +70,5 @@ pub mod accounts;
 
 pub mod watchlist;
 
+pub mod portfolio;
 pub mod tracking;

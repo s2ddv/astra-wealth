@@ -27,7 +27,12 @@ async fn main() -> anyhow::Result<()> {
         env::var("NODE_ENV").ok().as_deref(),
         env::var("ALLOW_DEV_AUTH").ok().as_deref(),
     );
-    let setting = |name: &str| env::var(name).ok().map(|value| value.trim().to_owned()).filter(|value| !value.is_empty());
+    let setting = |name: &str| {
+        env::var(name)
+            .ok()
+            .map(|value| value.trim().to_owned())
+            .filter(|value| !value.is_empty())
+    };
     let supabase_url = setting("SUPABASE_URL");
     let service_key = setting("SUPABASE_SERVICE_ROLE_KEY");
     anyhow::ensure!(
@@ -77,6 +82,29 @@ async fn main() -> anyhow::Result<()> {
             infrastructure::watchlist::SqlxWatchlistRepository::new(pool.clone()),
         )),
     });
+    let portfolio_cache = Arc::new(infrastructure::asset_icon::RedisAssetCache::new(
+        infrastructure::redis_pool(&redis_url)?,
+    ));
+    let fx = application::fx::FxService::new(
+        Arc::new(infrastructure::fx::BcbPtaxProvider::new()?),
+        portfolio_cache.clone(),
+    );
+    let portfolio = application::portfolio::PortfolioService::new(
+        Arc::new(infrastructure::portfolio::SqlxPortfolioRepository::new(
+            pool.clone(),
+        )),
+        fx.clone(),
+        Arc::new(infrastructure::tracking::CoinGeckoPriceProvider::new(
+            infrastructure::asset_icon::asset_http_client()?,
+            portfolio_cache,
+            setting("COINGECKO_API_KEY"),
+        )),
+    );
+    let portfolio_router = astra_api::portfolio::router(astra_api::portfolio::PortfolioState {
+        auth: auth.clone(),
+        portfolio,
+        fx,
+    });
     let tracking_router = astra_api::tracking::router(
         auth.clone(),
         infrastructure::tracking::tracking_service(
@@ -88,6 +116,7 @@ async fn main() -> anyhow::Result<()> {
     let news_router = astra_api::news::router(auth.clone(), news);
     let app = router(HealthState { dependencies }, auth, wallets)
         .merge(accounts_router)
+        .merge(portfolio_router)
         .merge(watchlists_router)
         .merge(tracking_router)
         .merge(news_router)
