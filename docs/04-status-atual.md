@@ -1,6 +1,6 @@
 # Astra Wealth — Status Atual e Referência Operacional
 
-> Documento de referência para o trabalho no repositório. Atualizado em 3 de outubro de 2026.
+> Documento de referência para o trabalho no repositório. Atualizado em 10 de outubro de 2026 (PTAX e consolidação; demais domínios mantêm limites de validação indicados).
 >
 > Este arquivo complementa o roadmap histórico e deve ser consultado antes de iniciar novas tarefas. Ele descreve o estado verificado do checkout atual, não apenas a intenção futura do produto.
 
@@ -8,7 +8,7 @@
 
 - Repositório local: `/home/samuel-barbosa/Documentos/astra-wealth`.
 - Branch verificada: `main`.
-- Estado nesta auditoria: `main` está 1 commit à frente de `origin/main` (`487e8f2`); há alterações locais ainda não commitadas em Rust, Fastify, frontend, Prisma e configuração.
+- Base inicial desta tarefa: `865f544`, `main` limpa. Durante as interrupções, entraram os commits de autenticação/isolamento até `b51e7b8`; foram preservados. O status de publicação desta entrega deve ser consultado no Git, não inferido deste checkpoint.
 - O caminho antigo `zora-wealth` é um link simbólico para este checkout Astra.
 - O produto e os pacotes usam a marca Astra Wealth; referências históricas a Zora podem permanecer em commits e migrações antigas.
 
@@ -56,7 +56,7 @@ O backend Rust roda por padrão na porta `3334`; o Fastify legado roda na porta 
   - enums de classe de ativo, origem, moeda e status.
 - As migrations históricas não representam sozinhas todo o schema atual; o Prisma continua sendo a fonte de verdade.
 
-### Carteiras — CRUD migrado; acompanhamento on-chain em desenvolvimento local
+### Carteiras — CRUD e tracking Rust commitados
 
 Disponível no Rust:
 
@@ -71,7 +71,7 @@ Disponível no Rust:
 
 Limites atuais:
 
-- O checkout local agora contém rotas Rust `GET /v1/me/wallets/:id/assets` e `POST /v1/me/wallets/:id/sync`, com implementação Alchemy, preços CoinGecko, cache Redis e persistência de `wallet_assets`. Essas alterações ainda não foram commitadas; não há nesta auditoria comprovação de consulta com chave real do provedor.
+- Rotas Rust `GET /v1/me/wallets/:id/assets` e `POST /v1/me/wallets/:id/sync`, Alchemy, CoinGecko, cache Redis e `wallet_assets` estão commitados (`edfc42c`, `59d1905`). O frontend foi conectado em `865f544`. Esta tarefa valida repositórios/cache isolados, sem afirmar nova sincronização Alchemy real.
 - O Fastify legado continua presente para compatibilidade durante a migração.
 - A migração dos demais domínios ainda não foi concluída.
 
@@ -108,30 +108,30 @@ O frontend consulta o Rust através de rotas servidoras do Next e usa polling de
 
 O plano antigo que citava CryptoPanic e NewsAPI não representa a implementação atual.
 
-### Contas e aportes — API Rust persistente, integração da interface pendente
+### Contas e aportes — API persistente e interface conectada
 
 Existe uma primeira etapa funcional de interface:
 
 - `/dashboard/accounts`;
 - `/dashboard/accounts/[accountId]`;
 - contas agrupadas por tipo;
-- holdings e histórico demonstrativos;
-- registro de aportes e retiradas em memória;
-- KPIs compartilhados entre a visão de contas e a overview.
+- contas/holdings/aportes consultados pelas APIs privadas;
+- mutações de contas e aportes persistentes;
+- valores de contas WALLET/USD ainda indisponíveis na consolidação antiga de `AccountsProvider`.
 
 Limites importantes:
 
-- Os dados ainda são mocks/estado local.
-- Recarregar a página descarta alterações feitas na interface.
+- `AccountsProvider` usa `usePrivateFetch` e React Query; alterações são persistidas pelo Rust.
+- A overview antiga ainda contém câmbio demonstrativo; a nova visão está condicionada ao gate descrito abaixo.
 - Rust agora oferece `/v1/accounts` e rotas de holdings/contribuições com PostgreSQL, isolamento por usuário e decimais em strings; contrato em `docs/05-api-contas-persistentes.md`.
-- A próxima implementação desse domínio deve substituir os mocks por API sem misturar a lógica de apresentação com persistência.
+- A nova consolidação do backend é separada do cálculo antigo do provider de contas; não declara carteiras/USD como zero para completar um total.
 
-### Watchlists — API Rust migrada; cliente ainda pendente
+### Watchlists — API Rust e cliente conectado
 
 - As rotas persistentes de watchlists foram entregues no commit `ba12581`; contrato em `docs/06-watchlists-rust.md`.
-- A troca do cliente do frontend para essas rotas ainda precisa ser validada por domínio.
+- Cliente privado conectado em `865f544`; a validação operacional de produção não é inferida de testes locais.
 
-### Portfolio e exchanges — ainda não migrados para Rust
+### Portfolio — primeira consolidação Rust; exchanges permanecem no legado
 
 O Fastify legado possui partes de:
 
@@ -139,7 +139,7 @@ O Fastify legado possui partes de:
 - conexões de exchanges;
 - serviços de carteira.
 
-Esses domínios ainda não devem ser considerados migrados para Rust. A ordem de migração prevista continua sendo:
+A consolidação BRL e snapshots novos são aditivos no Rust; os snapshots USD do Fastify não foram migrados. Exchanges continuam pendentes. Ordem histórica de referência:
 
 1. user;
 2. wallet;
@@ -150,8 +150,8 @@ Esses domínios ainda não devem ser considerados migrados para Rust. A ordem de
 
 ## 4. O que ainda é mock, demonstração ou não entregue
 
-- O acompanhamento on-chain no Rust está implementado somente no checkout local e ainda requer validação com provedor real e integração da interface.
-- A página de contas/aportes ainda não persiste dados.
+- O tracking e o cliente privado estão commitados; sua existência não comprova operação real de todos os ativos/redes.
+- A nova overview real fica desligada até validar o contrato com contas reais e carteira sincronizada com saldo não zero.
 - Gráficos avançados com Lightweight Charts ainda não foram confirmados como integrados.
 - Não há WebSocket nativo implementado; o frontend usa polling.
 - A página de ativo `/coin/[slug]` e histórico completo ainda são etapas futuras.
@@ -199,11 +199,11 @@ Se `target/` estiver read-only, usar um `CARGO_TARGET_DIR` temporário e registr
 
 ## 7. Próximas prioridades recomendadas
 
-1. **Backend entregue:** API persistente de contas, holdings e contribuições; conexão da interface permanece em tarefa separada.
+1. **Entregue em código:** API persistente de contas, holdings e contribuições; cliente conectado em `865f544`.
 2. **Definido e implementado:** vínculo exclusivo com carteira do mesmo usuário, holdings separados de wallet-assets e aportes exclusivamente explícitos.
 3. **Backend entregue:** watchlists no Rust com as mesmas tabelas, rotas e DTOs do Fastify; ver `docs/06-watchlists-rust.md`.
-4. **Próximo passo:** validar as alterações locais de wallet-assets e sincronização on-chain no Rust, executar um teste com chave Alchemy real em ambiente controlado e então consolidar um commit próprio. Depois, conectar a interface ao contrato Rust por domínio.
-5. Implementar snapshots e cálculo persistente do portfolio.
+4. **Próximo passo:** validar operacionalmente a nova consolidação BRL com contas reais, carteira não vazia, PTAX/CoinGecko e duas sessões antes de habilitar a overview.
+5. Consolidação e snapshots Rust implementados nesta etapa; aplicar a migration aditiva no ambiente alvo antes da ativação. Ver `docs/08-ptax-e-consolidacao.md`.
 6. Só depois avançar para exchanges, gráficos avançados e tempo real.
 
 O critério de prioridade é entregar primeiro dados reais, seguros e persistentes para o acompanhamento do portfólio; novas integrações não devem aumentar o escopo antes de os contratos e estados existentes estarem validados.
@@ -217,3 +217,26 @@ O critério de prioridade é entregar primeiro dados reais, seguros e persistent
 - `docs/02-contas-e-aportes.md` — implementação da primeira etapa de contas/aportes.
 - `docs/03-deploy-gratuito.md` — hospedagem e limitações do deploy.
 - `docs/05-api-contas-persistentes.md` — contratos Rust e relação entre contas e carteiras.
+
+
+## 9. PTAX e visão patrimonial — etapa de 10/10/2026
+
+Contrato completo, políticas e gate: [08-ptax-e-consolidacao.md](08-ptax-e-consolidacao.md).
+
+- PTAX USD/BRL de venda/fechamento, data atual ou histórica, cache Redis, data/fonte explícitas, recuo de até 14 dias, ausência e fallback desatualizado sinalizados.
+- Rust consolida holdings BRL/USD e carteiras únicas com `BigDecimal`; cripto de carteira usa CoinGecko BRL. Transferências/sync não geram aportes. Taxas históricas informadas são preservadas.
+- Snapshots JSONB novos, por usuário, sem reescrita dos snapshots USD legados e sem reconstrução fictícia do passado.
+- Overview real preparada com erro/retry, vazio, subtotal parcial e fontes. `PORTFOLIO_REAL_OVERVIEW_ENABLED=false` por padrão; não ativada em produção.
+- Fastify preservado; nenhum deploy manual ou alteração em `.github/workflows/`.
+
+### Evidência de validação desta entrega
+
+- **Aprovados:** `npm ci`; restauração do workspace com `pnpm install --frozen-lockfile`; `npm run lint`, `npm run typecheck`, `npm test` (24 testes) e `npm run build`, nessa ordem. Os scripts atuais de lint executam TypeScript (`tsc --noEmit`).
+- **Rust aprovado:** `cargo check/build/test --workspace --locked`, Clippy com `-D warnings`, `cargo fmt --all --check`. Suíte padrão: 80 aprovados, 14 opt-in ignorados.
+- **Opt-in executados separadamente:** 6 testes de PostgreSQL/Redis (contas, carteiras, tracking, caches e consolidação/snapshots) e 2 testes PTAX reais, todos aprovados. As migrations completas passaram no banco descartável.
+- **PTAX real:** consulta histórica para 2024-01-07 retornou fechamento de 2024-01-05; consulta atual em 2026-10-10 retornou 2026-10-09, taxa de venda `4.98920` BRL/USD. É evidência datada, não uma cotação permanente.
+- **Não executados nesta tarefa:** 6 opt-in restantes da suíte (gate multiusuário completo, repositórios de usuários/watchlists, cache de notícias e os dois testes live Alchemy/CoinGecko). A nova consolidação tem testes próprios de isolamento no PostgreSQL e contrato autenticado. Navegador autenticado e patrimônio não zero com provedores reais permanecem sem validação operacional.
+- **Falhas corrigidas:** espaços OData `+` → `%20`; aviso Clippy sobre clone em slice; formatação Rust; declaração duplicada durante adaptação ao contexto de sessão.
+- **Ambiente:** sockets e pnpm dentro do sandbox impediram/travaram verificações iniciais; reexecuções locais permitidas passaram. Rustfmt/Clippy foram extraídos em `/tmp`, sem instalação no sistema. Nenhum teste declarado aprovado com base em execução interrompida. Não restou bloqueio ambiental para as verificações executadas.
+- **Dependências:** `npm ci` apontou duas vulnerabilidades no conjunto instalado pelo lockfile npm (uma moderada e uma crítica). Nenhum `audit fix` ou atualização ampla de dependências foi aplicado nesta tarefa; esse aviso não corresponde à auditoria do grafo pnpm completo.
+- **Publicação:** commits pequenos e push na `main` autorizados para esta entrega. Nenhum deploy manual, migration no banco do projeto ou ativação da flag de produção. Confirmar o SHA remoto no Git para verificar a publicação.
