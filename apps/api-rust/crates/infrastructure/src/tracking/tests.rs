@@ -195,3 +195,46 @@ fn network_mapping_and_secret_configuration() {
         "polygon-ecosystem-token"
     );
 }
+
+#[tokio::test]
+async fn portfolio_brl_prices_are_exact_cached_and_separate_from_usd() {
+    use application::portfolio::BrlPriceProvider;
+    let calls = Arc::new(AtomicUsize::new(0));
+    let count = calls.clone();
+    let app = Router::new().route(
+        "/simple/price",
+        axum::routing::get(
+            move |axum::extract::RawQuery(query): axum::extract::RawQuery| {
+                let count = count.clone();
+                async move {
+                    count.fetch_add(1, Ordering::SeqCst);
+                    let query: HashMap<_, _> =
+                        url::form_urlencoded::parse(query.unwrap().as_bytes())
+                            .into_owned()
+                            .collect();
+                    assert_eq!(query["vs_currencies"], "brl");
+                    assert_eq!(query["precision"], "full");
+                    r#"{"ethereum":{"brl":12345.123456789012345678}}"#
+                }
+            },
+        ),
+    );
+    let (url, task) = server(app).await;
+    let cache = Arc::new(Cache::default());
+    cache.0.lock().unwrap().insert(
+        "tracking:price:native:ethereum".into(),
+        ("\"999\"".into(), 10),
+    );
+    let mut provider = CoinGeckoPriceProvider::new(asset_http_client().unwrap(), cache, None);
+    provider.base = url;
+    for _ in 0..2 {
+        let quote = provider
+            .price(domain::wallet::Chain::Ethereum, None)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(quote.price, "12345.123456789012345678");
+    }
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    task.abort();
+}

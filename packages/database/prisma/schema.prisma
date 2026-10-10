@@ -45,6 +45,7 @@ model User {
   wallets             Wallet[]
   watchlists          Watchlist[]
   snapshots           PortfolioSnapshot[]
+  valuations          PortfolioValuation[]
   exchangeConnections ExchangeConnection[]
 
   @@map("users")
@@ -288,4 +289,17 @@ model Contribution {
 
   @@unique([accountId, externalId])
   @@index([accountId, occurredAt])
+}
+
+// Immutable BRL valuations, independent of legacy Fastify USD snapshots.
+// Payload stores exact decimal strings, provenance and completeness flags.
+model PortfolioValuation {
+  id        String   @id @default(uuid())
+  userId    String
+  payload   Json     @db.JsonB
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("portfolio_valuations")
 }

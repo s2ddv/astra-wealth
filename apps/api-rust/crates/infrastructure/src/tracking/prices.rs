@@ -132,3 +132,75 @@ impl PriceProvider for CoinGeckoPriceProvider {
         })
     }
 }
+
+// Separate BRL contract/cache: legacy USD tracking remains unchanged.
+impl application::portfolio::BrlPriceProvider for CoinGeckoPriceProvider {
+    fn price<'a>(
+        &'a self,
+        chain: Chain,
+        contract: Option<&'a str>,
+    ) -> application::portfolio::PortfolioFuture<'a, Option<application::portfolio::BrlQuote>> {
+        Box::pin(async move {
+            use application::portfolio::{BrlQuote, PortfolioError};
+            let info = chain_info(chain).map_err(|_| PortfolioError)?;
+            let contract = contract.map(str::to_ascii_lowercase);
+            if contract.as_ref().is_some_and(|c| {
+                c.len() != 42
+                    || !c.starts_with("0x")
+                    || !c[2..].bytes().all(|b| b.is_ascii_hexdigit())
+            }) {
+                return Err(PortfolioError);
+            }
+            let key = format!(
+                "portfolio:coingecko:brl:v1:{}:{}",
+                info.platform,
+                contract.as_deref().unwrap_or("native")
+            );
+            if let Some(cached) = self.cache.get(&key).await.ok().flatten()
+                && let Ok(quote) = serde_json::from_str::<BrlQuote>(&cached)
+                && chrono::DateTime::parse_from_rfc3339(&quote.fetched_at).is_ok_and(|t| {
+                    let age = chrono::Utc::now().signed_duration_since(t).num_seconds();
+                    (0..60).contains(&age)
+                })
+                && price_decimal(&quote.price).is_ok_and(|p| p > 0)
+            {
+                return Ok(Some(quote));
+            }
+            let (path, parameter, identity) = if let Some(c) = contract.as_deref() {
+                (
+                    format!("/simple/token_price/{}", info.platform),
+                    "contract_addresses",
+                    c,
+                )
+            } else {
+                ("/simple/price".into(), "ids", info.coin_id)
+            };
+            let body = self
+                .payload(
+                    &path,
+                    &[
+                        (parameter, identity),
+                        ("vs_currencies", "brl"),
+                        ("precision", "full"),
+                    ],
+                )
+                .await
+                .map_err(|_| PortfolioError)?;
+            let Some(number) = body[identity]["brl"].as_number() else {
+                return Ok(None);
+            };
+            let price = price_decimal(&number.to_string()).map_err(|_| PortfolioError)?;
+            if price <= 0 {
+                return Ok(None);
+            }
+            let quote = BrlQuote {
+                price: price.normalized().to_plain_string(),
+                fetched_at: chrono::Utc::now().to_rfc3339(),
+            };
+            if let Ok(payload) = serde_json::to_string(&quote) {
+                let _ = self.cache.set(&key, &payload, 60).await;
+            }
+            Ok(Some(quote))
+        })
+    }
+}
