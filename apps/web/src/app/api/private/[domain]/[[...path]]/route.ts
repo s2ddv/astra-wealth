@@ -25,6 +25,7 @@ async function handle(request: Request, context: { params: Promise<{ domain: str
     const bases: Record<string, string | undefined> = {
       wallets: process.env.WALLETS_API_URL, accounts: process.env.ACCOUNTS_API_URL,
       watchlists: process.env.WATCHLISTS_API_URL,
+      portfolio: process.env.PORTFOLIO_API_URL, fx: process.env.PORTFOLIO_API_URL,
     };
     // getSession supplies only the bearer; Rust verifies signature, user and ownership.
     const response = await fetch(new URL(route, bases[domain] ?? "http://127.0.0.1:3334"), {

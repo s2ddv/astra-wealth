@@ -3,7 +3,13 @@ export function privateRoute(domain: string, path: string[], method: string): st
   if (path.some((part) => !/^[a-zA-Z0-9][a-zA-Z0-9:_-]{0,199}$/.test(part))) return null;
   const [id, collection] = path;
   let allowed = false;
-  if (domain === "wallets") {
+  if (domain === "portfolio") {
+    allowed = path.length === 0 ? method === "GET"
+      : path.length === 1 && id === "snapshots" && ["GET", "POST"].includes(method);
+  } else if (domain === "fx") {
+    allowed = id === "usd-brl" && method === "GET" && (path.length === 1
+      || (path.length === 2 && /^\d{4}-\d{2}-\d{2}$/.test(collection ?? "")));
+  } else if (domain === "wallets") {
     allowed = path.length === 0 ? ["GET", "POST"].includes(method)
       : path.length === 1 ? ["PATCH", "DELETE"].includes(method)
       : path.length === 2 && ((collection === "assets" && method === "GET") || (collection === "sync" && method === "POST"));
