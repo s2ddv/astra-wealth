@@ -90,4 +90,5 @@ pub mod accounts;
 
 pub mod watchlist;
 
+pub mod fx;
 pub mod tracking;
