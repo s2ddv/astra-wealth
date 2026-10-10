@@ -25,3 +25,4 @@ dotenvy.workspace = true
 [dev-dependencies]
 tower.workspace = true
 jsonwebtoken.workspace = true
+sqlx.workspace = true

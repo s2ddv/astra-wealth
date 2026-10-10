@@ -22,6 +22,7 @@
     "lint": "pnpm --parallel --filter @astra-wealth/web --filter @astra-wealth/api lint",
     "typecheck": "pnpm --parallel --filter @astra-wealth/web --filter @astra-wealth/api --filter @astra-wealth/database --filter @astra-wealth/shared typecheck",
     "test": "pnpm --filter @astra-wealth/shared --filter @astra-wealth/web --filter @astra-wealth/api test",
+    "test:security": "bash scripts/test-security-isolation.sh",
     "db:generate": "pnpm --filter @astra-wealth/database generate",
     "db:migrate": "pnpm --filter @astra-wealth/database migrate",
     "db:migrate:deploy": "pnpm --filter @astra-wealth/database migrate:deploy",
