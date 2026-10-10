@@ -301,16 +301,23 @@ async fn deleted_supabase_users_are_rejected_before_upsert() {
     task.abort();
 }
 
-
 #[tokio::test]
 async fn supplied_authorization_never_uses_dev_identity_without_a_verifier() {
     let users = Arc::new(MemoryUsers::default());
     for allow in [false, true] {
         for value in ["", "Bearer ", "Bearer broken", "broken"] {
             let app = protected(None, !allow, users.clone());
-            let response = app.oneshot(Request::builder().uri("/__test_auth")
-                .header("authorization", value).header("x-user-id", "demo_user_zora")
-                .body(Body::empty()).unwrap()).await.unwrap();
+            let response = app
+                .oneshot(
+                    Request::builder()
+                        .uri("/__test_auth")
+                        .header("authorization", value)
+                        .header("x-user-id", "demo_user_zora")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
             assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         }
     }
@@ -321,9 +328,16 @@ async fn supplied_authorization_never_uses_dev_identity_without_a_verifier() {
 #[tokio::test]
 async fn disabled_development_rejects_header_and_environment_identity() {
     let users = Arc::new(MemoryUsers::default());
-    let response = protected(None, true, users.clone()).oneshot(Request::builder()
-        .uri("/__test_auth").header("x-user-id", "demo_user_zora")
-        .body(Body::empty()).unwrap()).await.unwrap();
+    let response = protected(None, true, users.clone())
+        .oneshot(
+            Request::builder()
+                .uri("/__test_auth")
+                .header("x-user-id", "demo_user_zora")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(users.lookups.load(Ordering::SeqCst), 0);
 }
@@ -331,16 +345,33 @@ async fn disabled_development_rejects_header_and_environment_identity() {
 #[tokio::test]
 async fn verified_identity_wins_over_conflicting_header_and_dev_user() {
     let (url, _, task) = mock_supabase().await;
-    let verifier = Arc::new(SupabaseAuth::new(&url, Some(SECRET.into()), None, Some("test".into())).unwrap());
+    let verifier =
+        Arc::new(SupabaseAuth::new(&url, Some(SECRET.into()), None, Some("test".into())).unwrap());
     let users = Arc::new(MemoryUsers::default());
     for production in [false, true] {
-        for (token, status) in [(hs_token(&claims(&url), SECRET, Algorithm::HS256), StatusCode::OK), ("broken".into(), StatusCode::UNAUTHORIZED)] {
-            let response = protected(Some(verifier.clone()), production, users.clone()).oneshot(Request::builder()
-                .uri("/__test_auth").header("authorization", format!("Bearer {token}"))
-                .header("x-user-id", "another-user").body(Body::empty()).unwrap()).await.unwrap();
+        for (token, status) in [
+            (
+                hs_token(&claims(&url), SECRET, Algorithm::HS256),
+                StatusCode::OK,
+            ),
+            ("broken".into(), StatusCode::UNAUTHORIZED),
+        ] {
+            let response = protected(Some(verifier.clone()), production, users.clone())
+                .oneshot(
+                    Request::builder()
+                        .uri("/__test_auth")
+                        .header("authorization", format!("Bearer {token}"))
+                        .header("x-user-id", "another-user")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
             assert_eq!(response.status(), status);
             if status == StatusCode::OK {
-                let body: Value = serde_json::from_slice(&to_bytes(response.into_body(), 65536).await.unwrap()).unwrap();
+                let body: Value =
+                    serde_json::from_slice(&to_bytes(response.into_body(), 65536).await.unwrap())
+                        .unwrap();
                 assert_eq!(body["id"], "demo_user_zora");
                 assert_eq!(body["authId"], "supabase-id");
             }

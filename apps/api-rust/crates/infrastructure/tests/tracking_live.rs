@@ -15,12 +15,21 @@ async fn real_coingecko_returns_eth_and_usdc_prices() {
     let provider = CoinGeckoPriceProvider::new(
         asset_http_client().unwrap(),
         Arc::new(RedisAssetCache::new(redis)),
-        std::env::var("COINGECKO_API_KEY").ok().filter(|key| !key.is_empty()),
+        std::env::var("COINGECKO_API_KEY")
+            .ok()
+            .filter(|key| !key.is_empty()),
     );
-    let native = provider.native_price(Chain::Ethereum).await.unwrap().unwrap();
+    let native = provider
+        .native_price(Chain::Ethereum)
+        .await
+        .unwrap()
+        .unwrap();
     assert_ne!(native, "0");
     let contract = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48".to_owned();
-    let prices = provider.token_prices(Chain::Ethereum, &[contract.clone()]).await.unwrap();
+    let prices = provider
+        .token_prices(Chain::Ethereum, std::slice::from_ref(&contract))
+        .await
+        .unwrap();
     assert_ne!(prices.get(&contract).expect("USDC quote"), "0");
     println!("Real CoinGecko: ETH and USDC quotes verified");
 }

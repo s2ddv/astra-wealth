@@ -55,12 +55,24 @@ where
         if authorization.is_none() {
             if state.allow_dev_auth {
                 let header = if state.verifier.is_none() {
-                    parts.headers.get("x-user-id")
-                        .map(|value| value.to_str().map_err(|_| AuthRejection("Invalid X-User-Id header")))
-                        .transpose()?.filter(|id| !id.is_empty())
-                } else { None };
+                    parts
+                        .headers
+                        .get("x-user-id")
+                        .map(|value| {
+                            value
+                                .to_str()
+                                .map_err(|_| AuthRejection("Invalid X-User-Id header"))
+                        })
+                        .transpose()?
+                        .filter(|id| !id.is_empty())
+                } else {
+                    None
+                };
                 if let Some(id) = header.or(state.dev_user_id.as_deref()) {
-                    let user = state.users.find_by_id(id).await
+                    let user = state
+                        .users
+                        .find_by_id(id)
+                        .await
                         .map_err(|_| AuthRejection("Authentication failed"))?
                         .ok_or(AuthRejection("Invalid X-User-Id header"))?;
                     let user = Self(user);
@@ -68,17 +80,27 @@ where
                     return Ok(user);
                 }
             }
-            return Err(AuthRejection(if state.allow_dev_auth && state.verifier.is_none() {
-                "Authentication required"
-            } else { "Missing or invalid authorization header" }));
+            return Err(AuthRejection(
+                if state.allow_dev_auth && state.verifier.is_none() {
+                    "Authentication required"
+                } else {
+                    "Missing or invalid authorization header"
+                },
+            ));
         }
         // Preserve the legacy Bearer/raw-JWT contract, but never treat a supplied
         // empty header as permission to impersonate the development user.
-        let token = authorization.unwrap().to_str()
+        let token = authorization
+            .unwrap()
+            .to_str()
             .map_err(|_| AuthRejection("Invalid or expired token"))?
             .replacen("Bearer ", "", 1);
-        if token.is_empty() { return Err(AuthRejection("Invalid or expired token")); }
-        let verifier = state.verifier.as_ref()
+        if token.is_empty() {
+            return Err(AuthRejection("Invalid or expired token"));
+        }
+        let verifier = state
+            .verifier
+            .as_ref()
             .ok_or(AuthRejection("Authentication failed"))?;
         let identity = verifier.verify(&token).await.map_err(|error| match error {
             AuthError::InvalidToken => AuthRejection("Invalid or expired token"),
@@ -107,9 +129,19 @@ mod tests {
     use super::development_auth_enabled;
     #[test]
     fn development_auth_requires_both_explicit_settings() {
-        for environment in [None, Some("production"), Some("test"), Some("staging"), Some("Development"), Some("development")] {
+        for environment in [
+            None,
+            Some("production"),
+            Some("test"),
+            Some("staging"),
+            Some("Development"),
+            Some("development"),
+        ] {
             for flag in [None, Some("false"), Some("1"), Some("TRUE"), Some("true")] {
-                assert_eq!(development_auth_enabled(environment, flag), environment == Some("development") && flag == Some("true"));
+                assert_eq!(
+                    development_auth_enabled(environment, flag),
+                    environment == Some("development") && flag == Some("true")
+                );
             }
         }
     }
