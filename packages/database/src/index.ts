@@ -12,7 +12,7 @@ export {
   type SnapshotSource,
 } from "./generated/client/index.js";
 
-export * as Prisma from "@prisma/client";
+export * as Prisma from "./generated/client/index.js";
 
 import { PrismaClient } from "./generated/client/index.js";
 
