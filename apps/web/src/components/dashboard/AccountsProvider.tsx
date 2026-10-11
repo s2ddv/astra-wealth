@@ -34,7 +34,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
     },
   });
   const records = query.data ?? [];
-  const unavailableValues = records.filter((a) => a.kind === "WALLET" || a.baseCurrency !== "BRL").map((a) => a.id);
+  const unavailableValues = records.filter((a) => a.kind === "WALLET" || a.baseCurrency !== "BRL" || a.holdings.some(h => h.valuationPending)).map((a) => a.id);
   const accounts: FinancialAccountDTO[] = records.map((account) => ({
     ...account, syncStatus: account.kind === "WALLET" ? "ACTIVE" : "MANUAL",
     ...calculateContributionsSummary(account.contributions,

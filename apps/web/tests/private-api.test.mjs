@@ -6,9 +6,13 @@ import { privateFetch, PrivateApiError } from "../src/lib/private-api.ts";
 test("domain bridge allows only implemented Rust method/path pairs", () => {
   assert.equal(privateRoute("wallets", [], "GET"), "/v1/me/wallets");
   assert.equal(privateRoute("wallets", ["w1", "sync"], "POST"), "/v1/me/wallets/w1/sync");
+  assert.equal(privateRoute("accounts", ["a1", "operations"], "GET"), "/v1/accounts/a1/operations");
+  assert.equal(privateRoute("accounts", ["a1", "operations"], "POST"), "/v1/accounts/a1/operations");
   assert.equal(privateRoute("accounts", ["a1", "contributions"], "POST"), "/v1/accounts/a1/contributions");
   assert.equal(privateRoute("watchlists", ["w1", "items", "crypto:bitcoin"], "DELETE"), "/v1/me/watchlists/w1/items/crypto%3Abitcoin");
   for (const [domain, path, method] of [
+    ["accounts", ["a1", "operations"], "DELETE"],
+    ["accounts", ["a1", "operations", "o1"], "PUT"],
     ["admin", [], "GET"], ["wallets", ["w1", "sync"], "GET"],
     ["accounts", ["a1", "contributions", "c1"], "PUT"],
     ["wallets", [".."], "DELETE"], ["wallets", ["%2e%2e"], "DELETE"],

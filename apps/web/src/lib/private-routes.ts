@@ -16,7 +16,7 @@ export function privateRoute(domain: string, path: string[], method: string): st
   } else if (domain === "accounts") {
     allowed = path.length === 0 ? ["GET", "POST"].includes(method)
       : path.length === 1 ? ["GET", "DELETE"].includes(method)
-      : path.length === 2 ? ["holdings", "contributions"].includes(collection ?? "") && method === "POST"
+      : path.length === 2 ? ((collection === "operations" && ["GET", "POST"].includes(method)) || (["holdings", "contributions"].includes(collection ?? "") && method === "POST"))
       : path.length === 3 && ((collection === "holdings" && ["PUT", "DELETE"].includes(method)) || (collection === "contributions" && method === "DELETE"));
   } else if (domain === "watchlists") {
     allowed = path.length === 0 ? ["GET", "POST"].includes(method)

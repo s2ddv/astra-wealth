@@ -18,6 +18,7 @@ import {
 import {
   summarizeAccounts,
 } from "@/mocks/accounts";
+import { OperationsView } from "./OperationsView";
 import { useAccounts } from "./AccountsProvider";
 import {
   AccountInstitutionIcon,
@@ -302,9 +303,9 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   return (
     <>
-      {unavailableValues.includes(account.id) ? <p role="status">Avaliação em BRL indisponível. Consulte os saldos em Carteiras; a conversão para BRL ainda não está disponível.</p> : <ContributionsKpis summary={account} />}
+      {unavailableValues.includes(account.id) ? <p role="status">Avaliação consolidada indisponível: há saldos on-chain, outra moeda ou avaliações manuais pendentes após operações.</p> : <ContributionsKpis summary={account} />}
       <section className={PANEL}>
-        <h2 className="mb-4 text-title-md font-semibold">Ativos da conta</h2>
+        <h2 className="mb-4 text-title-md font-semibold">Avaliações patrimoniais da conta</h2>
         {positions.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-body-sm">
@@ -327,7 +328,7 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
                     </td>
                     <td className="p-3 tabular-nums">{position.quantity}</td>
                     <td className="p-3 text-right tabular-nums">
-                      {money(position.currentValue, account.baseCurrency)}
+                      {position.valuationPending ? "Avaliação pendente" : money(position.currentValue, account.baseCurrency)}
                     </td>
                   </tr>
                 ))}
@@ -336,8 +337,7 @@ function AccountDetails({ account }: { account: FinancialAccountDTO }) {
           </div>
         ) : (
           <p className="text-on-surface-variant">
-            Esta conta ainda não possui ativos. O cadastro de posições estará
-            disponível na próxima etapa.
+            Esta conta ainda não possui ativos. Cadastre um ativo na seção de operações manuais.
           </p>
         )}
       </section>
@@ -483,10 +483,13 @@ export function AccountsView({ selectedId }: { selectedId?: string }) {
         Contas e aportes salvos na sua conta. Transferências on-chain não geram aportes automaticamente.
       </p>
       {selected ? (
-        <AccountDetails account={selected} />
+        <>
+          <OperationsView key={selected.id} account={selected} />
+          <AccountDetails account={selected} />
+        </>
       ) : (
         <>
-          {unavailableValues.length ? <p role="status">Consolidação em BRL indisponível: existem contas com saldo on-chain ou outra moeda. Consulte os valores por conta.</p> : <ContributionsKpis summary={summarizeAccounts(accounts, contributions)} />}
+          {unavailableValues.length ? <p role="status">Consolidação em BRL indisponível: existem contas com saldo on-chain, outra moeda ou avaliação manual pendente. Consulte os valores por conta.</p> : <ContributionsKpis summary={summarizeAccounts(accounts, contributions)} />}
           <div className={PANEL}>
             <label
               htmlFor="accounts-search"

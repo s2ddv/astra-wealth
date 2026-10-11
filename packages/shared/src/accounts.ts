@@ -40,6 +40,7 @@ export interface FinancialAccountDTO extends ContributionsSummaryDTO {
   syncStatus: ConnectionStatus | "MANUAL";
 }
 export interface HoldingDTO {
+  valuationPending?: boolean;
   id: string;
   accountId: string;
   assetClass: AssetClass;
