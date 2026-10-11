@@ -247,6 +247,8 @@ model FinancialAccount {
   openFinanceConnection OpenFinanceConnection? @relation(fields: [openFinanceConnectionId], references: [id])
   holdings              Holding[]
   contributions         Contribution[]
+  operations            FinancialOperation[] @relation("OperationAccount")
+  incomingOperations    FinancialOperation[] @relation("OperationDestination")
 
   @@index([userId])
 }
@@ -267,6 +269,7 @@ model Holding {
   createdAt     DateTime   @default(now())
 
   account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  operations FinancialOperation[]
 
   @@unique([accountId, externalId])
   @@index([accountId])
@@ -302,4 +305,35 @@ model PortfolioValuation {
 
   @@index([userId, createdAt])
   @@map("portfolio_valuations")
+}
+
+// Immutable manual ledger. Corrections append a replacement; never rewrite originals.
+model FinancialOperation {
+  id                   String @id @default(uuid())
+  accountId            String
+  destinationAccountId String?
+  holdingId            String?
+  replacesId           String? @unique
+  requestId            String
+  kind                 String
+  assetClass           String?
+  market               String?
+  quantity             Decimal? @db.Decimal(28, 10)
+  amount               Decimal? @db.Decimal(28, 10)
+  fees                 Decimal? @db.Decimal(28, 10)
+  currency             FiatCurrency
+  occurredAt           DateTime
+  note                 String?
+  createdAt            DateTime @default(now())
+  account              FinancialAccount @relation("OperationAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  destination          FinancialAccount? @relation("OperationDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  holding              Holding? @relation(fields: [holdingId], references: [id], onDelete: Restrict)
+  replaces             FinancialOperation? @relation("OperationCorrection", fields: [replacesId], references: [id], onDelete: Restrict)
+  replacement          FinancialOperation? @relation("OperationCorrection")
+
+  @@unique([accountId, requestId])
+  @@index([accountId, occurredAt])
+  @@index([destinationAccountId, occurredAt])
+  @@index([holdingId])
+  @@map("financial_operations")
 }
