@@ -46,3 +46,5 @@ pub mod watchlist;
 pub mod fx;
 pub mod portfolio;
 pub mod tracking;
+
+pub mod operations;

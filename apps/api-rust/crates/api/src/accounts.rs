@@ -54,7 +54,11 @@ impl IntoResponse for AccountHttpError {
                 "NOT_FOUND",
                 "Account or record not found",
             ),
-            AccountError::Conflict => (StatusCode::CONFLICT, "CONFLICT", "Record already exists"),
+            AccountError::Conflict => (
+                StatusCode::CONFLICT,
+                "CONFLICT",
+                "Registro duplicado ou vinculado a um histórico que deve ser preservado",
+            ),
             AccountError::Unavailable(error) => {
                 tracing::error!(%error,"Account storage operation failed");
                 (

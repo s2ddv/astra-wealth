@@ -76,6 +76,12 @@ async fn main() -> anyhow::Result<()> {
             infrastructure::accounts::SqlxAccountRepository::new(pool.clone()),
         )),
     });
+    let operations_router = astra_api::operations::router(astra_api::operations::OperationState {
+        auth: auth.clone(),
+        operations: application::operations::OperationService::new(Arc::new(
+            infrastructure::operations::SqlxOperationRepository::new(pool.clone()),
+        )),
+    });
     let watchlists_router = astra_api::watchlist::router(astra_api::watchlist::WatchlistState {
         auth: auth.clone(),
         watchlists: application::watchlist::WatchlistService::new(Arc::new(
@@ -116,6 +122,7 @@ async fn main() -> anyhow::Result<()> {
     let news_router = astra_api::news::router(auth.clone(), news);
     let app = router(HealthState { dependencies }, auth, wallets)
         .merge(accounts_router)
+        .merge(operations_router)
         .merge(portfolio_router)
         .merge(watchlists_router)
         .merge(tracking_router)

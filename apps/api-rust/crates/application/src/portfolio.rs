@@ -314,7 +314,7 @@ impl PortfolioService {
                 }
             }
             PositionKind::Unsupported => {
-                v.issue = Some("UNSUPPORTED_ASSET".into());
+                v.issue.get_or_insert_with(|| "UNSUPPORTED_ASSET".into());
             }
         }
         if v.value_brl.is_none() && v.issue.is_none() {

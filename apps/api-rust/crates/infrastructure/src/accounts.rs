@@ -16,7 +16,7 @@ impl SqlxAccountRepository {
 fn error(error: sqlx::Error) -> AccountError {
     if error
         .as_database_error()
-        .is_some_and(|e| e.is_unique_violation())
+        .is_some_and(|e| e.is_unique_violation() || e.is_foreign_key_violation())
     {
         AccountError::Conflict
     } else {
@@ -30,7 +30,7 @@ fn decode<T: DeserializeOwned>(value: Value) -> Result<T, AccountError> {
 // every client value uses a bind parameter.
 // Explicit text projections prevent JSON numeric rounding and fix UTC timestamp semantics.
 const ACCOUNT: &str = r#"to_jsonb(a) || jsonb_build_object('createdAt',to_char(a."createdAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'updatedAt',to_char(a."updatedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))"#;
-const HOLDING: &str = r#"to_jsonb(h) || jsonb_build_object('quantity',h.quantity::text,'unitPrice',h."unitPrice"::text,'currentValue',h."currentValue"::text,'dueDate',to_char(h."dueDate",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'createdAt',to_char(h."createdAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'updatedAt',to_char(h."updatedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))"#;
+const HOLDING: &str = r#"to_jsonb(h) || jsonb_build_object('valuationPending',EXISTS(SELECT 1 FROM financial_operations o WHERE o."holdingId"=h.id AND o.kind IN ('BUY','SELL','OPENING') AND o."createdAt">=h."updatedAt" AND NOT EXISTS(SELECT 1 FROM financial_operations r WHERE r."replacesId"=o.id)),'quantity',h.quantity::text,'unitPrice',h."unitPrice"::text,'currentValue',h."currentValue"::text,'dueDate',to_char(h."dueDate",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'createdAt',to_char(h."createdAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'updatedAt',to_char(h."updatedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))"#;
 const CONTRIBUTION: &str = r#"to_jsonb(c) || jsonb_build_object('amount',c.amount::text,'fxRateToBrl',c."fxRateToBrl"::text,'occurredAt',to_char(c."occurredAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'createdAt',to_char(c."createdAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))"#;
 async fn lock_account(
     tx: &mut Transaction<'_, Postgres>,

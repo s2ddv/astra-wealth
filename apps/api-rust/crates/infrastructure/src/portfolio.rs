@@ -35,18 +35,19 @@ impl PortfolioRepository for SqlxPortfolioRepository {
                     .await
                     .map_err(error)?;
             let mut positions = Vec::new();
-            let holdings = sqlx::query(r#"SELECT h.id,h.name,h."accountId",h."currentValue"::text AS value,h."assetClass"::text AS class,h."updatedAt",a."baseCurrency"::text AS currency FROM "Holding" h JOIN "FinancialAccount" a ON a.id=h."accountId" WHERE a."userId"=$1 AND a.kind != 'WALLET' ORDER BY h.id"#)
+            let holdings = sqlx::query(r#"SELECT h.id,h.name,h."accountId",h."currentValue"::text AS value,h."assetClass"::text AS class,h."updatedAt",EXISTS(SELECT 1 FROM financial_operations o WHERE o."holdingId"=h.id AND o.kind IN ('BUY','SELL','OPENING') AND o."createdAt">=h."updatedAt" AND NOT EXISTS(SELECT 1 FROM financial_operations r WHERE r."replacesId"=o.id)) AS pending,a."baseCurrency"::text AS currency FROM "Holding" h JOIN "FinancialAccount" a ON a.id=h."accountId" WHERE a."userId"=$1 AND a.kind != 'WALLET' ORDER BY h.id"#)
                 .bind(owner).fetch_all(&mut *tx).await.map_err(error)?;
             for h in holdings {
                 let class: String = h.try_get("class").map_err(error)?;
+                let pending: bool = h.try_get("pending").map_err(error)?;
                 positions.push(PositionInput {
                     id: h.try_get("id").map_err(error)?,
                     account_id: Some(h.try_get("accountId").map_err(error)?),
                     wallet_id: None,
                     name: h.try_get("name").map_err(error)?,
                     updated_at: timestamp(&h, "updatedAt")?,
-                    issue: None,
-                    kind: if class == "CRYPTO" {
+                    issue: pending.then(|| "MANUAL_VALUATION_REQUIRED".into()),
+                    kind: if pending || class == "CRYPTO" {
                         PositionKind::Unsupported
                     } else {
                         PositionKind::Fiat {

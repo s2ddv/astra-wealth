@@ -35,7 +35,9 @@ impl BrlPriceProvider for Prices {
 #[ignore = "Requires disposable TEST_DATABASE_URL and TEST_REDIS_URL"]
 async fn real_storage_consolidates_once_preserves_rates_and_isolates_snapshots() {
     let url = std::env::var("TEST_DATABASE_URL").unwrap();
-    assert!(url.contains("127.0.0.1:55432/astra_ptax_test"));
+    let parsed = url::Url::parse(&url).unwrap();
+    assert_eq!(parsed.host_str(), Some("127.0.0.1"));
+    assert!(["/astra_ptax_test", "/astra_operations_test"].contains(&parsed.path()));
     let pool = postgres_pool(&url).unwrap();
     let repo = Arc::new(SqlxPortfolioRepository::new(pool.clone()));
     let redis = redis_pool(&std::env::var("TEST_REDIS_URL").unwrap()).unwrap();

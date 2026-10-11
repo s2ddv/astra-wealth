@@ -184,6 +184,8 @@ pub struct Account {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Holding {
+    #[serde(default)]
+    pub valuation_pending: bool,
     pub id: String,
     pub account_id: String,
     pub asset_class: String,
