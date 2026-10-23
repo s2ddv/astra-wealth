@@ -14,8 +14,24 @@ pub struct MarketCoin {
     pub updated_at: Option<String>,
     pub image: Option<IconUrl>,
 }
+#[derive(Clone, Debug, Default)]
+pub enum MarketOrder {
+    #[default]
+    MarketCap,
+    Change24h,
+}
+impl MarketOrder {
+    pub fn provider_value(&self) -> &'static str {
+        match self {
+            Self::MarketCap => "market_cap_desc",
+            Self::Change24h => "price_change_percentage_24h_desc",
+        }
+    }
+}
 #[derive(Clone, Debug, Validate)]
 pub struct MarketQuery {
+    #[garde(skip)]
+    pub order: MarketOrder,
     #[garde(range(min = 1, max = 10000))]
     pub page: u32,
     #[garde(range(min = 1, max = 100))]
@@ -26,6 +42,7 @@ pub struct MarketQuery {
 impl Default for MarketQuery {
     fn default() -> Self {
         Self {
+            order: MarketOrder::default(),
             page: 1,
             per_page: 100,
             ids: Vec::new(),

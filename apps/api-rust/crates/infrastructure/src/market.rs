@@ -198,12 +198,13 @@ impl CryptoMarketProvider for CoinGeckoMarketProvider {
             let ids = query.ids.join(",");
             let page = query.page.to_string();
             let per_page = query.per_page.to_string();
-            let key = format!("market:coingecko:usd:v2:{page}:{per_page}:{ids}");
+            let order = query.order.provider_value();
+            let key = format!("market:coingecko:usd:v3:{order}:{page}:{per_page}:{ids}");
             let mut params = vec![
                 ("vs_currency", "usd"),
                 ("per_page", per_page.as_str()),
                 ("page", page.as_str()),
-                ("order", "market_cap_desc"),
+                ("order", order),
                 ("sparkline", "false"),
             ];
             if !ids.is_empty() {

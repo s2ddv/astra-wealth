@@ -53,6 +53,12 @@ impl CryptoMarketProvider for Markets {
                 return Err(IconError::Unavailable);
             }
             assert!((1..=100).contains(&query.per_page));
+            if query.page == 1 && query.per_page == 1 {
+                assert_eq!(
+                    query.order.provider_value(),
+                    "price_change_percentage_24h_desc"
+                );
+            }
             Ok(vec![bitcoin()])
         })
     }

@@ -157,21 +157,36 @@ async fn pagination_and_ids_are_forwarded_and_cache_fills_are_coalesced() {
     );
     provider.base = base;
     let query = MarketQuery {
+        order: domain::market::MarketOrder::MarketCap,
         page: 2,
         per_page: 50,
         ids: vec!["ethereum".into(), "bitcoin".into(), "bitcoin".into()],
     };
     let (first, second) = tokio::join!(
         provider.market_page(query.clone()),
-        provider.market_page(query)
+        provider.market_page(query.clone())
     );
     assert!(first.is_ok() && second.is_ok());
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+    provider
+        .market_page(MarketQuery {
+            order: domain::market::MarketOrder::Change24h,
+            ..query
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        2,
+        "Different sort orders must not share cached prices"
+    );
     let requests = captured.lock().unwrap();
+    assert_eq!(requests[1]["order"], "price_change_percentage_24h_desc");
     assert_eq!(requests[0]["page"], "2");
     assert_eq!(requests[0]["per_page"], "50");
     assert_eq!(requests[0]["ids"], "bitcoin,ethereum");
     assert_eq!(requests[0]["vs_currency"], "usd");
+    assert_eq!(requests[0]["order"], "market_cap_desc");
     task.abort();
 }
 #[tokio::test]

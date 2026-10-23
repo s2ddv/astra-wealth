@@ -111,6 +111,29 @@ async fn main() -> anyhow::Result<()> {
         portfolio,
         fx,
     });
+    let usd_snapshots_router =
+        astra_api::usd_snapshots::router(astra_api::usd_snapshots::UsdSnapshotState {
+            auth: auth.clone(),
+            snapshots: application::usd_snapshots::UsdSnapshotService::new(Arc::new(
+                infrastructure::usd_snapshots::SqlxUsdSnapshotRepository::new(pool.clone()),
+            )),
+        });
+    let public_client = infrastructure::asset_icon::asset_http_client()?;
+    let public_wallets = application::public_wallet::PublicWalletService::new(
+        Arc::new(infrastructure::public_wallet::PublicBalanceProvider::new(
+            public_client.clone(),
+            infrastructure::public_wallet::ProviderKind::Alchemy,
+            setting("ALCHEMY_API_KEY"),
+        )),
+        Arc::new(infrastructure::public_wallet::PublicBalanceProvider::new(
+            public_client,
+            infrastructure::public_wallet::ProviderKind::Moralis,
+            setting("MORALIS_API_KEY"),
+        )),
+        Arc::new(infrastructure::asset_icon::RedisAssetCache::new(
+            infrastructure::redis_pool(&redis_url)?,
+        )),
+    );
     let tracking_router = astra_api::tracking::router(
         auth.clone(),
         infrastructure::tracking::tracking_service(
@@ -124,6 +147,8 @@ async fn main() -> anyhow::Result<()> {
         .merge(accounts_router)
         .merge(operations_router)
         .merge(portfolio_router)
+        .merge(usd_snapshots_router)
+        .merge(astra_api::public_wallet::router(public_wallets))
         .merge(watchlists_router)
         .merge(tracking_router)
         .merge(news_router)

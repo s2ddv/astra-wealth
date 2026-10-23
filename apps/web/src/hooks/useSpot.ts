@@ -3,15 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 
-interface SpotCoin {
-  id: string;
-  symbol: string;
-  name: string;
-  image: string;
-  currentPrice: number;
-  priceChangePercentage24h: number;
-  marketCap: number;
-}
+import type { MarketCoinDto as SpotCoin } from "../../../../packages/shared/src/generated/rust/MarketDto";
 
 export function useSpot(limit = 10) {
   const [data, setData] = useState<{ data: SpotCoin[] } | null>(null);
@@ -20,10 +12,13 @@ export function useSpot(limit = 10) {
 
   useEffect(() => {
     setIsLoading(true);
-    apiFetch<SpotCoin[]>(`/v1/market/spot?limit=${limit}`)
-      .then((coins) => setData({ data: coins }))
-      .catch(() => setIsError(true))
-      .finally(() => setIsLoading(false));
+    setIsError(false);
+    const controller = new AbortController();
+    apiFetch<SpotCoin[]>(`/v1/market/spot?limit=${limit}`, { signal: controller.signal })
+      .then((coins) => { if (!controller.signal.aborted) setData({ data: coins }); })
+      .catch(() => { if (!controller.signal.aborted) setIsError(true); })
+      .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
+    return () => controller.abort();
   }, [limit]);
 
   return { data, isLoading, isError };

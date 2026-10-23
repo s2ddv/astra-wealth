@@ -4,14 +4,16 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { useSpot } from "../../hooks/useSpot";
 
-function formatCompact(value: number) {
+function formatCompact(value: number | null) {
+  if (value === null) return "—";
   return new Intl.NumberFormat("en-US", {
     notation: "compact",
     maximumFractionDigits: 2,
   }).format(value);
 }
 
-function formatPrice(value: number) {
+function formatPrice(value: number | null) {
+  if (value === null) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -31,7 +33,7 @@ export function CoinsCard() {
   );
 
   const maxMarketCap = coins?.length
-    ? Math.max(...coins.map((c) => c.marketCap))
+    ? Math.max(1, ...coins.map((c) => c.marketCap ?? 0))
     : 1;
 
   return (
@@ -76,10 +78,10 @@ export function CoinsCard() {
           </thead>
           <tbody>
             {coins.map((coin) => {
-              const isPositive = coin.priceChangePercentage24h >= 0;
+              const isPositive = coin.priceChangePercentage24h !== null && coin.priceChangePercentage24h >= 0;
               const barWidth = Math.max(
                 4,
-                (coin.marketCap / maxMarketCap) * 100
+                ((coin.marketCap ?? 0) / maxMarketCap) * 100
               );
 
               return (
@@ -89,11 +91,11 @@ export function CoinsCard() {
                 >
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-1.5">
-                      <img
+                      {coin.image && <img
                         src={coin.image}
                         alt={coin.name}
                         className="w-5 h-5 rounded-full"
-                      />
+                      />}
                       <span className="text-neutral-100 text-xs font-medium">
                         {coin.symbol.toUpperCase()}
                       </span>
@@ -110,8 +112,7 @@ export function CoinsCard() {
                           isPositive ? "text-emerald-400" : "text-red-400"
                         }`}
                       >
-                        {isPositive ? "+" : "-"}
-                        {Math.abs(coin.priceChangePercentage24h).toFixed(2)}%
+                        {coin.priceChangePercentage24h === null ? "—" : `${isPositive ? "+" : "-"}${Math.abs(coin.priceChangePercentage24h).toFixed(2)}%`}
                       </span>
                     </div>
                   </td>
