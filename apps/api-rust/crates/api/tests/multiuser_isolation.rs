@@ -237,6 +237,14 @@ async fn two_verified_users_cannot_cross_parent_child_wallet_watchlist_or_cache_
         auth: auth.clone(),
         watchlists: WatchlistService::new(Arc::new(SqlxWatchlistRepository::new(pool.clone()))),
     }))
+    .merge(astra_api::usd_snapshots::router(
+        astra_api::usd_snapshots::UsdSnapshotState {
+            auth: auth.clone(),
+            snapshots: application::usd_snapshots::UsdSnapshotService::new(Arc::new(
+                infrastructure::usd_snapshots::SqlxUsdSnapshotRepository::new(pool.clone()),
+            )),
+        },
+    ))
     .merge(tracking::router(
         auth,
         WalletTrackingService::new(
@@ -247,6 +255,72 @@ async fn two_verified_users_cannot_cross_parent_child_wallet_watchlist_or_cache_
             cache.clone(),
         ),
     ));
+    // USD uses the legacy table but its own explicit URL, never BRL valuations.
+    for actor in 0..2 {
+        let created = request(
+            &app,
+            &tokens[actor],
+            "POST",
+            "/v1/me/portfolio/snapshots-usd",
+            json!({"totalUsd": 123.456, "userId": OWNERS[1-actor]}),
+            201,
+        )
+        .await;
+        assert_eq!(created["userId"], OWNERS[actor]);
+        assert_eq!(created["totalUsd"], "123.46");
+        let history = request(
+            &app,
+            &tokens[actor],
+            "GET",
+            "/v1/me/portfolio/snapshots-usd?limit=1",
+            Value::Null,
+            200,
+        )
+        .await;
+        assert_eq!(history, json!([created]));
+    }
+    for actor in 0..2 {
+        let history = request(
+            &app,
+            &tokens[actor],
+            "GET",
+            "/v1/me/portfolio/snapshots-usd",
+            Value::Null,
+            200,
+        )
+        .await;
+        assert_eq!(history.as_array().unwrap().len(), 1);
+        assert_eq!(history[0]["userId"], OWNERS[actor]);
+    }
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM portfolio_snapshots")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    request(
+        &app,
+        "invalid",
+        "POST",
+        "/v1/me/portfolio/snapshots-usd",
+        json!({"totalUsd": 999}),
+        401,
+    )
+    .await;
+    request(
+        &app,
+        &tokens[0],
+        "POST",
+        "/v1/me/portfolio/snapshots-usd",
+        json!({"totalUsd": -1}),
+        400,
+    )
+    .await;
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM portfolio_snapshots")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        count
+    );
 
     let mut account = vec![];
     let mut position = vec![];

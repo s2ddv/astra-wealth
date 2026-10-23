@@ -95,3 +95,6 @@ pub mod portfolio;
 pub mod tracking;
 
 pub mod operations;
+
+pub mod public_wallet;
+pub mod usd_snapshots;

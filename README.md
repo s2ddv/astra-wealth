@@ -10,15 +10,15 @@ O feed de notícias usa RSS e, opcionalmente, NewsData.
 ```text
 apps/
 ├── web/          # Next.js 16, React 19, TypeScript e Tailwind CSS 4
-├── api/          # Backend legado Fastify, porta 3333
-└── api-rust/     # Backend Rust/Axum, porta 3334
+└── api-rust/     # Único backend, Rust/Axum, porta 3334
 packages/
 ├── database/     # Prisma e schema PostgreSQL
 └── shared/       # Tipos TypeScript e DTOs gerados pelo Rust
 ```
 
 Os pacotes TypeScript usam o escopo `@astra-wealth/*`. O backend Rust permanece
-em `apps/api-rust`; não há pasta `apps/api-legacy-fastify`.
+em `apps/api-rust`; o pacote Fastify foi retirado após migração dos contratos.
+Veja a [matriz de contratos e validação](docs/11-retirada-fastify.md).
 
 ## Preparação
 
@@ -29,14 +29,18 @@ Na pasta em que o repositório foi clonado:
 
 ```sh
 cp .env.example .env
+cp apps/api-rust/.env.example apps/api-rust/.env
+cp apps/web/.env.example apps/web/.env.local
 pnpm install
 pnpm db:generate
 docker compose up -d
 pnpm dev
 ```
 
-O web fica em `http://localhost:3000`. `pnpm dev` inicia web e Fastify;
-o Rust é iniciado separadamente conforme [seu README](apps/api-rust/README.md).
+O web fica em `http://localhost:3000`. `pnpm dev` inicia web e Rust (3334)
+simultaneamente, em grupos de processos POSIX: a saída de um encerra o outro.
+`pnpm dev:web` e `pnpm dev:rust` continuam disponíveis separadamente;
+`dev:api` é um alias de `dev:rust`. Veja [a configuração Rust](apps/api-rust/README.md).
 Preencha as variáveis locais de autenticação e banco antes de usar serviços que
 precisam delas. Nunca versione credenciais.
 
@@ -44,7 +48,13 @@ precisam delas. Nunca versione credenciais.
 
 ```sh
 pnpm dev:web
-pnpm dev:api
+pnpm dev:rust
+pnpm check:rust
+pnpm test:rust
+pnpm build:rust
+pnpm lint:rust
+pnpm fmt:rust
+pnpm test:security
 pnpm turbo run lint typecheck build
 pnpm --filter @astra-wealth/web start
 pnpm db:generate
@@ -52,7 +62,10 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-Turbo gera o cliente Prisma antes das verificações dependentes. O build web
+Cargo é validado pelos comandos explícitos acima, fora do grafo pnpm/Turbo;
+não existe pacote pnpm fictício para Rust. `pnpm build` constrói o web;
+`pnpm build:rust` constrói o backend.
+Turbo gera o cliente Prisma antes das verificações TypeScript dependentes. O build web
 usa Webpack; lint/typecheck aguardam os tipos produzidos pelo Next. O seed é uma ação
 explícita de desenvolvimento: não é executado durante instalação ou build.
 
@@ -67,6 +80,19 @@ explícita de desenvolvimento: não é executado durante instalação ou build.
 
 Assinaturas de transações devem permanecer no cliente. Integrações precisam
 preservar autenticação, isolamento por usuário e proteção de credenciais.
+
+## Contratos e configuração após a retirada
+
+`GET /v1/wallet/:address` continua público, com Alchemy/Moralis e cache de 30s.
+A API USD preservada é `GET/POST /v1/me/portfolio/snapshots-usd`; a rota
+`/v1/me/portfolio/snapshots` continua BRL. Consumidores externos USD devem mudar
+explicitamente de caminho. Nenhuma tabela ou migration foi removida.
+
+Ajuste `NEXT_PUBLIC_API_URL` para Rust e confirme `MARKET_API_URL`, `NEWS_API_URL`,
+`WALLETS_API_URL`, `ACCOUNTS_API_URL`, `WATCHLISTS_API_URL`, `PORTFOLIO_API_URL`
+no ambiente web. Configure `WEB_ORIGIN` no Rust para a origem exata do navegador.
+Não compartilhe um PORT=3333 exportado entre os processos. Mudanças em
+NEXT_PUBLIC_* exigem novo build web. Esta entrega não edita `.env.local`.
 
 ## Documentação
 

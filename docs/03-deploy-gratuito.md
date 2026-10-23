@@ -43,7 +43,8 @@ Importe o repositório GitHub e use a branch `main`:
 
 Habilite **Include source files outside of the Root Directory in the Build Step**
 para resolver `packages/shared`. O `packageManager` da raiz fixa pnpm 10.
-Não use o build da raiz: ele também compila o backend legado.
+O build da raiz agora gera Prisma e constrói o web. O backend Rust é
+construído separadamente pelo Dockerfile/Cargo; não existe mais build Fastify.
 
 Configure as variáveis de `apps/web/.env.example`:
 

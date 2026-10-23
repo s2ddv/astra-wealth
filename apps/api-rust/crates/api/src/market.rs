@@ -96,6 +96,7 @@ async fn markets(
     Query(query): Query<PageQuery>,
 ) -> Result<Json<MarketPageDto>, MarketError> {
     let query = MarketQuery {
+        order: domain::market::MarketOrder::MarketCap,
         page: query.page.unwrap_or(1),
         per_page: query.per_page.unwrap_or(50),
         ids: query
@@ -126,6 +127,7 @@ async fn spot(
     let data = service
         .market_page(MarketQuery {
             per_page: query.limit.unwrap_or(10),
+            order: domain::market::MarketOrder::Change24h,
             ..MarketQuery::default()
         })
         .await?;
