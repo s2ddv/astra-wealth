@@ -1,5 +1,10 @@
 # Astra Wealth — Status Atual e Referência Operacional
 
+> Atualização de 23/10/2026: Fastify retirado após migração da consulta pública
+> e API USD (`snapshots-usd`). Rust é o único backend. Matriz e evidências em
+> [11-retirada-fastify.md](11-retirada-fastify.md). As seções históricas datadas
+> abaixo não comprovam o estado externo atual.
+
 > Documento de referência para o trabalho no repositório. Atualizado em 10 de outubro de 2026 (PTAX e consolidação; demais domínios mantêm limites de validação indicados).
 >
 > Este arquivo complementa o roadmap histórico e deve ser consultado antes de iniciar novas tarefas. Ele descreve o estado verificado do checkout atual, não apenas a intenção futura do produto.
@@ -19,8 +24,7 @@ Qualquer tarefa deve preservar alterações locais não relacionadas e confirmar
 ```text
 apps/
   web/          Next.js, React, Tailwind v4 e TanStack Query
-  api/          Fastify/TypeScript legado, ainda ativo
-  api-rust/     Rust/Axum em migração incremental
+  api-rust/     Rust/Axum, único backend
 packages/
   database/     Prisma e schema oficial do banco
   shared/       DTOs, validações e tipos compartilhados
@@ -29,7 +33,7 @@ docs/           Documentação operacional em português
 
 O frontend não acessa o banco diretamente. A comunicação deve passar por uma API.
 
-O backend Rust roda por padrão na porta `3334`; o Fastify legado roda na porta `3333`. Os dois devem continuar lado a lado até que cada domínio tenha sido migrado e validado.
+O backend Rust roda por padrão na porta `3334`; `pnpm dev` inicia web e Rust.
 
 ## 3. Estado por domínio
 
@@ -40,7 +44,7 @@ O backend Rust roda por padrão na porta `3334`; o Fastify legado roda na porta 
 - Autenticação Supabase no frontend.
 - Validação de JWT Supabase no Rust, incluindo HS256, RS256 e ES256.
 - Health checks no Rust em `/health`, `/v1/health` e `/v1/health/`.
-- TypeScript compartilhado entre `web`, `api`, `database` e `shared`.
+- TypeScript compartilhado entre `web`, `database` e `shared`.
 
 ### Banco de dados — implementado e em evolução
 
@@ -72,7 +76,7 @@ Disponível no Rust:
 Limites atuais:
 
 - Rotas Rust `GET /v1/me/wallets/:id/assets` e `POST /v1/me/wallets/:id/sync`, Alchemy, CoinGecko, cache Redis e `wallet_assets` estão commitados (`edfc42c`, `59d1905`). O frontend foi conectado em `865f544`. Esta tarefa valida repositórios/cache isolados, sem afirmar nova sincronização Alchemy real.
-- O Fastify legado continua presente para compatibilidade durante a migração.
+- A consulta pública Alchemy/Moralis agora está no Rust; o fluxo privado de tracking permanece separado.
 - A migração dos demais domínios ainda não foi concluída.
 
 ### Mercados e ícones — implementado no Rust
@@ -131,22 +135,13 @@ Limites importantes:
 - As rotas persistentes de watchlists foram entregues no commit `ba12581`; contrato em `docs/06-watchlists-rust.md`.
 - Cliente privado conectado em `865f544`; a validação operacional de produção não é inferida de testes locais.
 
-### Portfolio — primeira consolidação Rust; exchanges permanecem no legado
+### Portfolio — contratos USD e BRL separados no Rust
 
-O Fastify legado possui partes de:
-
-- snapshots de portfólio;
-- conexões de exchanges;
-- serviços de carteira.
-
-A consolidação BRL e snapshots novos são aditivos no Rust; os snapshots USD do Fastify não foram migrados. Exchanges continuam pendentes. Ordem histórica de referência:
-
-1. user;
-2. wallet;
-3. watchlist;
-4. wallet-asset;
-5. portfolio-snapshot;
-6. exchange-connection.
+- BRL: `/v1/me/portfolio/snapshots`, avaliação no servidor, portfolio_valuations.
+- USD: `/v1/me/portfolio/snapshots-usd`, total informado pelo cliente,
+  portfolio_snapshots preservada, owner autenticado e limit 1..100.
+- Exchanges: repositório inativo descontinuado por decisão; schema/dados
+  preservados. Não havia rota registrada; a interface continua demonstrativa.
 
 ## 4. O que ainda é mock, demonstração ou não entregue
 
@@ -163,7 +158,7 @@ A consolidação BRL e snapshots novos são aditivos no Rust; os snapshots USD d
 
 1. Usar `packages/database/prisma/schema.prisma` como fonte única do schema.
 2. Usar PostgreSQL direto na porta `5432`; nunca configurar o pooler `6543`.
-3. Manter frontend, Fastify legado e Rust com contratos compatíveis durante a migração.
+3. Manter consumidores e testes alinhados aos contratos Rust, distinguindo USD e BRL.
 4. Não direcionar todo o frontend para Rust sem migrar e validar o domínio correspondente.
 5. Controllers/rotas não devem chamar provedores externos diretamente; usar services e infraestrutura.
 6. Manter separação entre domínio, aplicação, infraestrutura e camada HTTP no Rust.
@@ -172,7 +167,7 @@ A consolidação BRL e snapshots novos são aditivos no Rust; os snapshots USD d
 9. Não afirmar que uma integração real existe quando ela está apenas mockada ou disponível no legado.
 10. Preservar estados de carregamento, erro, retry, vazio, fallback e paginação quando aplicáveis.
 11. Manter documentação em português em `docs/`.
-12. Antes de cada tarefa, confirmar se o domínio pertence ao Fastify, ao Rust ou a ambos.
+12. Antes de cada tarefa, confirmar o contrato Rust e seus consumidores reais.
 
 ## 6. Validação esperada
 
@@ -203,7 +198,7 @@ Se `target/` estiver read-only, usar um `CARGO_TARGET_DIR` temporário e registr
 2. **Definido e implementado:** vínculo exclusivo com carteira do mesmo usuário, holdings separados de wallet-assets e aportes exclusivamente explícitos.
 3. **Backend entregue:** watchlists no Rust com as mesmas tabelas, rotas e DTOs do Fastify; ver `docs/06-watchlists-rust.md`.
 4. **Próximo passo:** validar operacionalmente a nova consolidação BRL com contas reais, carteira não vazia, PTAX/CoinGecko e duas sessões antes de habilitar a overview.
-5. Consolidação e snapshots Rust implementados nesta etapa; aplicar a migration aditiva no ambiente alvo antes da ativação. Ver `docs/08-ptax-e-consolidacao.md`.
+5. Consolidação e snapshots Rust implementados; a ativação depende de reconciliação e validação externa separadas. Esta retirada não aplica migrations externas. Ver `docs/08-ptax-e-consolidacao.md`.
 6. Só depois avançar para exchanges, gráficos avançados e tempo real.
 
 O critério de prioridade é entregar primeiro dados reais, seguros e persistentes para o acompanhamento do portfólio; novas integrações não devem aumentar o escopo antes de os contratos e estados existentes estarem validados.

@@ -1,3 +1,8 @@
+> Atualização 23/10/2026: o gate atual é Rust-only e inclui snapshots USD,
+> snapshots BRL e smoke HTTP/preflight. Não executa o antigo teste Fastify.
+> As evidências Rust/Fastify abaixo são históricas. Consulte
+> [11-retirada-fastify.md](11-retirada-fastify.md) para o estado desta retirada.
+
 # Verificação P0 de isolamento multiusuário
 
 As correções de autenticação e cache estão separadas da verificação integrada.

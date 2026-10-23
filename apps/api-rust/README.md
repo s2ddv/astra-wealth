@@ -1,8 +1,8 @@
 # Astra Wealth — API Rust
 
-Backend Rust/Axum em `apps/api-rust`, executado ao lado do Fastify em `apps/api`.
-Portas padrão: Rust **3334**, Fastify **3333**. A migração dos demais domínios é
-incremental; não redirecione todas as chamadas do frontend para Rust de uma vez.
+Backend Rust/Axum em `apps/api-rust`, único backend (porta padrão **3334**).
+A retirada do Fastify e os contratos mantidos estão documentados em
+`docs/11-retirada-fastify.md`; os consumidores web apontam para Rust.
 
 ## Arquitetura
 
@@ -46,7 +46,7 @@ O domínio de usuários espelha o schema Prisma: IDs TEXT, `authId` obrigatório
 e-mail e preserva ID local e nome. Sem e-mail, usa `user-{authId}@supabase.local`.
 Não há rota pública de perfil `/v1/me` ou `/users`.
 
-Use os mesmos `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` do legado. Projetos
+Use os mesmos `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` do projeto. Projetos
 HS256 também usam `SUPABASE_JWT_SECRET`; assinaturas assimétricas usam JWKS em
 `/auth/v1/.well-known/jwks.json`, substituível por `SUPABASE_JWKS_URL`.
 São aceitos HS256, RS256 e ES256, com validação de assinatura, expiração, issuer,
@@ -60,7 +60,7 @@ não recorrem ao usuário demo, mesmo sem verifier ou com header vazio.
 Nos dois backends, atalhos locais exigem **NODE_ENV=development e ALLOW_DEV_AUTH=true**.
 Somente sem Authorization pode ser usado `DEV_USER_ID`; `X-User-Id` é aceito apenas
 nesse modo explícito e sem configuração Supabase. Com Supabase, esse header não
-substitui a identidade validada. O helper Fastify apenas exige a identidade do plugin.
+substitui a identidade validada.
 Configuração Supabase incompleta impede a inicialização. Ausência total só é aceita
 no modo de desenvolvimento explícito; NODE_ENV ausente, produção, test ou staging
 exigem configuração completa. Os arquivos de exemplo deixam ALLOW_DEV_AUTH desativado.
@@ -77,7 +77,8 @@ Rotas autenticadas:
 Apelidos são aparados e limitados a 1–64 unidades UTF-16. Duplicatas retornam 409;
 carteiras de outro usuário retornam 404 nas alterações. Quantidades são strings
 decimais exatas. Esta etapa não consulta saldos on-chain nem expõe sincronização.
-Watchlist, ativos, snapshots e conexões de exchanges seguem como próximos domínios.
+Watchlists, tracking e snapshots BRL/USD estão implementados. Exchanges continuam
+demonstrativas: nenhum contrato HTTP de exchange foi criado.
 Assinaturas de transações permanecem no cliente.
 
 ## Mercados e ícones
@@ -195,3 +196,20 @@ Os testes normais usam fixtures HTTP locais para auth, provedores, contratos,
 limites, validação e fallback. Os testes de banco cobrem IDs TEXT, concorrência,
 unicidade, isolamento de proprietário e precisão dos valores. Remova os serviços
 descartáveis após a validação.
+
+## Contratos preservados na retirada do Fastify
+
+- `GET /v1/wallet/:address`: consulta pública Ethereum Alchemy/Moralis, cache
+  compartilhado por endereço (30s), seis casas ETH e fontes ausentes como null.
+  Sem banco e sem substituição do tracking privado.
+- `GET /v1/me/portfolio/snapshots-usd?limit=30`: histórico USD legado por usuário,
+  limite 1..100. `POST` no mesmo caminho recebe `{ "totalUsd": 123.45 }` e retorna
+  201 com `{id,totalUsd:string,userId,createdAt}`. Tabela portfolio_snapshots
+  preservada; source WALLET_REFRESH em novas capturas, owner da autenticação.
+- `/v1/me/portfolio/snapshots` permanece BRL, calculado no servidor e separado.
+- `GET /v1/market/spot` preserva ordem por variação 24h; `coins` usa market cap.
+
+`pnpm dev` na raiz inicia web + Cargo; `pnpm dev:rust` roda somente a API.
+Use `pnpm check:rust`, `build:rust`, `test:rust`, `lint:rust`, `fmt:rust` e
+`test:security` para validar. O gate de isolamento não depende de Fastify;
+usa bancos descartáveis, identidades e provedores sintéticos, sem DDL remoto.
