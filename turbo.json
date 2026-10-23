@@ -12,10 +12,10 @@
         "@astra-wealth/database#generate"
       ],
       "outputs": [
-        "dist/**",
         ".next/**",
         "!.next/cache/**"
-      ]
+      ],
+      "cache": false
     },
     "lint": {
       "dependsOn": [
@@ -36,6 +36,13 @@
       "dependsOn": [
         "typecheck"
       ]
+    },
+    "test": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

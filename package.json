@@ -15,13 +15,13 @@
     ]
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter @astra-wealth/web --filter @astra-wealth/api dev",
+    "dev": "node scripts/dev.mjs",
     "dev:web": "pnpm --filter @astra-wealth/web dev",
-    "dev:api": "pnpm --filter @astra-wealth/api dev",
-    "build": "pnpm --filter @astra-wealth/database generate && pnpm --filter @astra-wealth/web build && pnpm --filter @astra-wealth/api build",
-    "lint": "pnpm --parallel --filter @astra-wealth/web --filter @astra-wealth/api lint",
-    "typecheck": "pnpm --parallel --filter @astra-wealth/web --filter @astra-wealth/api --filter @astra-wealth/database --filter @astra-wealth/shared typecheck",
-    "test": "pnpm --filter @astra-wealth/shared --filter @astra-wealth/web --filter @astra-wealth/api test",
+    "dev:api": "pnpm dev:rust",
+    "build": "pnpm --filter @astra-wealth/database generate && pnpm --filter @astra-wealth/web build",
+    "lint": "pnpm --filter @astra-wealth/web lint",
+    "typecheck": "pnpm --filter @astra-wealth/database generate && pnpm --parallel --filter @astra-wealth/web --filter @astra-wealth/database --filter @astra-wealth/shared typecheck",
+    "test": "pnpm --filter @astra-wealth/shared --filter @astra-wealth/web test && node --test scripts/dev.test.mjs",
     "test:security": "bash scripts/test-security-isolation.sh",
     "db:generate": "pnpm --filter @astra-wealth/database generate",
     "db:migrate": "pnpm --filter @astra-wealth/database migrate",
@@ -30,7 +30,14 @@
     "db:seed": "pnpm --filter @astra-wealth/database seed",
     "db:studio": "pnpm --filter @astra-wealth/database studio",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "dev:rust": "cd apps/api-rust && cargo run --locked -p astra-api --bin astra-api",
+    "check:rust": "cd apps/api-rust && cargo check --workspace --locked",
+    "build:rust": "cd apps/api-rust && cargo build --workspace --locked",
+    "test:rust": "cd apps/api-rust && cargo test --workspace --locked",
+    "lint:rust": "cd apps/api-rust && cargo clippy --workspace --all-targets --locked -- -D warnings",
+    "fmt:rust": "cd apps/api-rust && cargo fmt --all --check",
+    "test:security:rust": "pnpm test:security"
   },
   "dependencies": {
     "cors": "^2.8.6",

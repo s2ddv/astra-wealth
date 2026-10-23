@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [ "$#" -ne 0 ]; then echo 'Usage: test-security-isolation.sh' >&2; exit 2; fi
 
 # This gate never accepts a caller's database URL. Only newly created,
 # localhost-only containers receive fixture data. db push initializes their
@@ -43,11 +44,10 @@ npm test
 (
   cd apps/api-rust
   cargo test --workspace --locked
-  for target in user_repository wallet_repository tracking_repository accounts_repository watchlist_repository; do
+  for target in user_repository wallet_repository tracking_repository accounts_repository watchlist_repository portfolio_repository usd_snapshots_repository; do
     cargo test -p astra-infrastructure --locked --test "$target" -- --ignored
   done
   cargo test -p astra-api --locked --test multiuser_isolation -- --ignored
 )
-# Runs after Rust: verifies both backends resolve the same two local User IDs.
-(cd apps/api && node --import tsx --test tests/multiuser.integration.ts)
+python3 scripts/test-rust-http.py
 echo 'Security isolation gate passed (real disposable PostgreSQL/Redis; synthetic identities/providers).'
